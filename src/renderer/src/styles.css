@@ -180,6 +180,27 @@ body.resizing {
   border-color: var(--accent);
   color: var(--accent);
 }
+.toolbar button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.toolbar .favicon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+.toolbar .favicon img {
+  border-radius: 2px;
+}
+.favicon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
 .toolbar .addressbar {
   flex: 1 1 auto;
   height: 22px;

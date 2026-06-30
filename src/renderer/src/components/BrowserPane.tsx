@@ -15,8 +15,13 @@ function normalizeUrl(input: string): string {
 
 export function BrowserPane({ node }: { node: LeafNode }) {
   const setUrl = useStore((s) => s.setUrl);
+  const view = useStore((s) => s.viewState[node.id]);
   const [draft, setDraft] = useState(node.url);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const loading = view?.loading ?? false;
+  const canGoBack = view?.canGoBack ?? false;
+  const canGoForward = view?.canGoForward ?? false;
 
   // keep the address bar in sync with navigation, unless the user is editing it
   useEffect(() => {
@@ -33,20 +38,39 @@ export function BrowserPane({ node }: { node: LeafNode }) {
   return (
     <>
       <div className="toolbar" onMouseDown={(e) => e.stopPropagation()}>
-        <button title="戻る" onClick={() => ibe.goBack(node.id)}>
+        <button title="戻る" disabled={!canGoBack} onClick={() => ibe.goBack(node.id)}>
           ←
         </button>
-        <button title="進む" onClick={() => ibe.goForward(node.id)}>
+        <button
+          title="進む"
+          disabled={!canGoForward}
+          onClick={() => ibe.goForward(node.id)}
+        >
           →
         </button>
-        <button title="リロード" onClick={() => ibe.reload(node.id)}>
-          ⟳
-        </button>
+        {loading ? (
+          <button title="停止" onClick={() => ibe.stop(node.id)}>
+            ✕
+          </button>
+        ) : (
+          <button title="リロード" onClick={() => ibe.reload(node.id)}>
+            ⟳
+          </button>
+        )}
+        <span className="favicon" title={view?.title || ""}>
+          {view?.favicon ? (
+            <img src={view.favicon} alt="" width={14} height={14} />
+          ) : (
+            <span className="favicon-dot" />
+          )}
+        </span>
         <input
           ref={inputRef}
           className="addressbar"
+          data-address-for={node.id}
           value={draft}
           spellCheck={false}
+          placeholder="URL または検索"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           onFocus={(e) => e.target.select()}
@@ -55,7 +79,7 @@ export function BrowserPane({ node }: { node: LeafNode }) {
       </div>
       {/* native WebContentsView is positioned over this box by syncBounds */}
       <div className="content browser-content" data-browser-id={node.id}>
-        <span className="browser-hint">web content (native overlay)</span>
+        <span className="browser-hint">{loading ? "読み込み中…" : "web content"}</span>
       </div>
     </>
   );

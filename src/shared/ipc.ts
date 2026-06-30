@@ -13,6 +13,16 @@ export interface BrowserState {
   title: string;
   canGoBack: boolean;
   canGoForward: boolean;
+  loading: boolean;
+  /** favicon URL reported by the page, if any */
+  favicon?: string;
+}
+
+/** A link/popup that wanted a new window; the renderer opens it in a new pane. */
+export interface OpenNewRequest {
+  /** the browser pane id the request originated from */
+  fromId: string;
+  url: string;
 }
 
 /**
@@ -45,8 +55,11 @@ export interface IbeApi {
   goBack(id: string): void;
   goForward(id: string): void;
   reload(id: string): void;
+  stop(id: string): void;
   destroy(id: string): void;
   onState(cb: (state: BrowserState) => void): () => void;
+  /** A browser pane asked to open a url in a new window → open it in a new pane. */
+  onOpenNew(cb: (req: OpenNewRequest) => void): () => void;
 
   term: TerminalApi;
 }

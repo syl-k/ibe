@@ -3,6 +3,7 @@ import type {
   Bounds,
   BrowserState,
   IbeApi,
+  OpenNewRequest,
   TerminalApi,
 } from "../shared/ipc";
 
@@ -41,11 +42,17 @@ const api: IbeApi = {
   goBack: (id) => ipcRenderer.send("browser:goBack", id),
   goForward: (id) => ipcRenderer.send("browser:goForward", id),
   reload: (id) => ipcRenderer.send("browser:reload", id),
+  stop: (id) => ipcRenderer.send("browser:stop", id),
   destroy: (id) => ipcRenderer.send("browser:destroy", id),
   onState: (cb) => {
     const listener = (_e: unknown, state: BrowserState) => cb(state);
     ipcRenderer.on("browser:state", listener);
     return () => ipcRenderer.removeListener("browser:state", listener);
+  },
+  onOpenNew: (cb) => {
+    const listener = (_e: unknown, req: OpenNewRequest) => cb(req);
+    ipcRenderer.on("browser:open-new", listener);
+    return () => ipcRenderer.removeListener("browser:open-new", listener);
   },
   term,
 };

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { BrowserState } from "../../shared/ipc";
 import type { LayoutNode, Tab } from "./types";
 import {
   collectLeaves,
@@ -45,10 +46,21 @@ function blankTab(title: string): Tab {
   return { id: makeId("tab"), title, root: leaf("browser", "https://example.com") };
 }
 
+/** Live browser chrome state for one pane (not part of the layout tree). */
+export interface BrowserViewState {
+  title: string;
+  loading: boolean;
+  favicon?: string;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
 interface State {
   tabs: Tab[];
   activeTabId: string;
   focusedPaneId: string | null;
+  /** per-pane live browser state, keyed by pane id */
+  viewState: Record<string, BrowserViewState>;
 
   setActiveTab: (id: string) => void;
   addTab: () => void;
@@ -61,6 +73,10 @@ interface State {
   toggleKind: (id: string) => void;
   setRatio: (splitId: string, ratio: number) => void;
   setUrl: (paneId: string, url: string) => void;
+  /** apply a BrowserState update from main (url + live chrome state) */
+  applyBrowserState: (s: BrowserState) => void;
+  /** open `url` in a new browser pane split off from `fromId` */
+  openInNewPane: (fromId: string, url: string) => void;
 
   addSession: (paneId: string) => void;
   closeSession: (paneId: string, sessionId: string) => void;
@@ -86,6 +102,7 @@ export const useStore = create<State>((set, get) => ({
   tabs: [first],
   activeTabId: first.id,
   focusedPaneId: null,
+  viewState: {},
 
   setActiveTab: (id) => set({ activeTabId: id }),
 
@@ -196,6 +213,44 @@ export const useStore = create<State>((set, get) => ({
           root: transformLeaf(t.root, paneId, (l) => ({ ...l, url })),
         };
       }),
+    })),
+
+  applyBrowserState: (bs) =>
+    set((s) => ({
+      viewState: {
+        ...s.viewState,
+        [bs.id]: {
+          title: bs.title,
+          loading: bs.loading,
+          favicon: bs.favicon || undefined,
+          canGoBack: bs.canGoBack,
+          canGoForward: bs.canGoForward,
+        },
+      },
+      // keep the layout's url in sync (address bar + future persistence)
+      tabs: s.tabs.map((t) =>
+        findLeaf(t.root, bs.id)
+          ? { ...t, root: transformLeaf(t.root, bs.id, (l) => ({ ...l, url: bs.url })) }
+          : t
+      ),
+    })),
+
+  openInNewPane: (fromId, url) =>
+    set((s) => ({
+      tabs: s.tabs.map((t) =>
+        findLeaf(t.root, fromId)
+          ? {
+              ...t,
+              root: transformLeaf(t.root, fromId, (l) => ({
+                type: "split",
+                id: makeId("split"),
+                dir: "row",
+                ratio: 0.5,
+                children: [l, leaf("browser", url)],
+              })),
+            }
+          : t
+      ),
     })),
 }));
 

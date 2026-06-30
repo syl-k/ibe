@@ -38,8 +38,14 @@ export function App() {
     };
   }, []);
 
-  // reflect navigation back into the store (address bar / titles)
-  useEffect(() => ibe.onState((s) => useStore.getState().setUrl(s.id, s.url)), []);
+  // reflect navigation / chrome state back into the store
+  useEffect(() => ibe.onState((s) => useStore.getState().applyBrowserState(s)), []);
+
+  // links that want a new window open in a new pane (in-app, not the OS browser)
+  useEffect(
+    () => ibe.onOpenNew((r) => useStore.getState().openInNewPane(r.fromId, r.url)),
+    []
+  );
 
   // keyboard shortcuts
   useEffect(() => {
@@ -62,6 +68,16 @@ export function App() {
       } else if (e.key === "]") {
         e.preventDefault();
         st.nextTab(1);
+      } else if (e.key === "l" && isLeaf(focused)) {
+        e.preventDefault();
+        const input = document.querySelector<HTMLInputElement>(
+          `.addressbar[data-address-for="${focused}"]`
+        );
+        input?.focus();
+        input?.select();
+      } else if (e.key === "r" && isLeaf(focused)) {
+        e.preventDefault();
+        ibe.reload(focused!);
       }
     };
     window.addEventListener("keydown", onKey);

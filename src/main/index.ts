@@ -47,6 +47,8 @@ function createWindow(): void {
   });
 }
 
+const favicons = new Map<string, string>();
+
 function sendState(id: string): void {
   const view = views.get(id);
   if (!view || !mainWindow) return;
@@ -57,6 +59,8 @@ function sendState(id: string): void {
     title: wc.getTitle(),
     canGoBack: wc.navigationHistory.canGoBack(),
     canGoForward: wc.navigationHistory.canGoForward(),
+    loading: wc.isLoading(),
+    favicon: favicons.get(id),
   });
 }
 
@@ -71,8 +75,15 @@ ipcMain.on("browser:create", (_e, id: string, url: string) => {
   wc.on("did-navigate", () => sendState(id));
   wc.on("did-navigate-in-page", () => sendState(id));
   wc.on("page-title-updated", () => sendState(id));
+  wc.on("did-start-loading", () => sendState(id));
+  wc.on("did-stop-loading", () => sendState(id));
+  wc.on("page-favicon-updated", (_e, icons) => {
+    favicons.set(id, icons[0] ?? "");
+    sendState(id);
+  });
+  // Link/popup wanting a new window → ask the renderer to open it in a new pane.
   wc.setWindowOpenHandler(({ url: target }) => {
-    shell.openExternal(target);
+    mainWindow?.webContents.send("browser:open-new", { fromId: id, url: target });
     return { action: "deny" };
   });
 
@@ -110,6 +121,9 @@ ipcMain.on("browser:goForward", (_e, id: string) =>
 ipcMain.on("browser:reload", (_e, id: string) =>
   views.get(id)?.webContents.reload()
 );
+ipcMain.on("browser:stop", (_e, id: string) =>
+  views.get(id)?.webContents.stop()
+);
 
 ipcMain.on("browser:destroy", (_e, id: string) => {
   const view = views.get(id);
@@ -117,6 +131,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
   mainWindow.contentView.removeChildView(view);
   view.webContents.close();
   views.delete(id);
+  favicons.delete(id);
 });
 
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
