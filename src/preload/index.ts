@@ -1,10 +1,38 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { Bounds, BrowserState, IbeApi } from "../shared/ipc";
+import type {
+  Bounds,
+  BrowserState,
+  IbeApi,
+  TerminalApi,
+} from "../shared/ipc";
 
 /**
- * Least-privilege bridge. Only the browser-pane control surface is exposed; no
- * Node / pty access (that arrives in M2 behind its own narrow channel).
+ * Least-privilege bridge. Exposes only the narrow browser-pane and terminal
+ * control surfaces; no raw Node / pty handle reaches the renderer.
  */
+const term: TerminalApi = {
+  create: (id, cols, rows) => ipcRenderer.send("term:create", id, cols, rows),
+  attach: (id) => ipcRenderer.send("term:attach", id),
+  detach: (id) => ipcRenderer.send("term:detach", id),
+  input: (id, data) => ipcRenderer.send("term:input", id, data),
+  resize: (id, cols, rows) => ipcRenderer.send("term:resize", id, cols, rows),
+  destroy: (id) => ipcRenderer.send("term:destroy", id),
+  onData: (id, cb) => {
+    const listener = (_e: unknown, p: { id: string; data: string }) => {
+      if (p.id === id) cb(p.data);
+    };
+    ipcRenderer.on("term:data", listener);
+    return () => ipcRenderer.removeListener("term:data", listener);
+  },
+  onExit: (id, cb) => {
+    const listener = (_e: unknown, p: { id: string; exitCode: number }) => {
+      if (p.id === id) cb(p.exitCode);
+    };
+    ipcRenderer.on("term:exit", listener);
+    return () => ipcRenderer.removeListener("term:exit", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -19,6 +47,7 @@ const api: IbeApi = {
     ipcRenderer.on("browser:state", listener);
     return () => ipcRenderer.removeListener("browser:state", listener);
   },
+  term,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

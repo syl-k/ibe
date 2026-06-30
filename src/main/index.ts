@@ -1,6 +1,7 @@
 import { app, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
 import { join } from "path";
 import type { Bounds } from "../shared/ipc";
+import { registerPtyHandlers, killAllPtys } from "./pty";
 
 /**
  * Main process — owns one native WebContentsView per browser pane, keyed by the
@@ -41,6 +42,7 @@ function createWindow(): void {
   mainWindow.on("closed", () => {
     for (const view of views.values()) view.webContents.close();
     views.clear();
+    killAllPtys();
     mainWindow = null;
   });
 }
@@ -116,6 +118,8 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
   view.webContents.close();
   views.delete(id);
 });
+
+registerPtyHandlers(() => mainWindow?.webContents ?? null);
 
 app.whenReady().then(() => {
   createWindow();

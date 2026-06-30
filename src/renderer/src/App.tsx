@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { useStore } from "./store";
 import { collectLeaves } from "./tree";
 import { useBrowserViews } from "./hooks/useBrowserViews";
+import { useTerminals } from "./hooks/useTerminals";
 import { registerBoundsRunner, requestBoundsSync } from "./boundsSync";
 import { TabBar } from "./components/TabBar";
 import { SplitView } from "./components/SplitView";
@@ -15,6 +16,7 @@ export function App() {
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const syncBounds = useBrowserViews(tabs, activeTabId);
+  useTerminals(tabs);
 
   // make the rAF-coalesced trigger run our bounds sync
   useEffect(() => registerBoundsRunner(syncBounds), [syncBounds]);

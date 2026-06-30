@@ -219,14 +219,17 @@ body.resizing {
   color: var(--muted);
   font-size: 12px;
 }
-.terminal-content {
+.terminal-host {
   background: var(--term-bg);
-  color: #a6e3a1;
-  font-family: "SF Mono", Menlo, monospace;
-  font-size: 12px;
-  padding: 10px 12px;
-  white-space: pre-wrap;
+  padding: 6px 0 6px 8px;
   user-select: text;
+}
+/* let xterm own its inner sizing */
+.terminal-host .xterm {
+  height: 100%;
+}
+.terminal-host .xterm-viewport {
+  background-color: transparent !important;
 }
 
 .hud {

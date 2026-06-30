@@ -15,6 +15,27 @@ export interface BrowserState {
   canGoForward: boolean;
 }
 
+/**
+ * Terminal (pty) control surface. The pty itself lives in the main process and
+ * outlives renderer mounts: it is spawned on `create`, killed only on `destroy`
+ * (when the pane leaves the layout), and survives tab switches. Main keeps a
+ * capped scrollback buffer so a re-mounting terminal can `attach` and replay.
+ */
+export interface TerminalApi {
+  /** Spawn the login shell for `id` if not already running (idempotent). */
+  create(id: string, cols: number, rows: number): void;
+  /** Begin live streaming to this renderer and replay the backlog. */
+  attach(id: string): void;
+  /** Stop live streaming (pty + buffer stay alive). */
+  detach(id: string): void;
+  input(id: string, data: string): void;
+  resize(id: string, cols: number, rows: number): void;
+  /** Kill the pty and drop its buffer (pane removed from layout). */
+  destroy(id: string): void;
+  onData(id: string, cb: (data: string) => void): () => void;
+  onExit(id: string, cb: (exitCode: number) => void): () => void;
+}
+
 /** The API the preload bridge exposes on `window.ibe`. */
 export interface IbeApi {
   createBrowser(id: string, url: string): void;
@@ -26,4 +47,6 @@ export interface IbeApi {
   reload(id: string): void;
   destroy(id: string): void;
   onState(cb: (state: BrowserState) => void): () => void;
+
+  term: TerminalApi;
 }
