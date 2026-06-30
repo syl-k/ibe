@@ -175,7 +175,7 @@ MVP 後:
 |---|------|----------|
 | M0 | プロトタイプ検証 ✅ **完了** | `WebContentsView` の多ペイン重ね合わせ・座標同期を技術検証 → [docs/m0-prototype.md](./m0-prototype.md)。成功。描画方式は `WebContentsView` で確定。 |
 | M1 | レイアウト基盤 ✅ **完了** | 再帰分割・リサイズ・ペイン開閉・タブ切り替え（中身はダミー可）→ [docs/m1-layout.md](./m1-layout.md)。React + electron-vite + Zustand で実装。 |
-| M2 | ターミナル統合 | node-pty + xterm.js、ログイン shell 起動、ペイン内タブ |
+| M2 | ターミナル統合 ✅ **完了** | node-pty + xterm.js、ログイン shell 起動、ペイン内タブ → [docs/m2-terminal.md](./m2-terminal.md) |
 | M3 | ブラウザ統合 | URL 入力・表示・戻る/進む、ペインへの割り当て |
 | M4 | 状態復元 | レイアウト・タブ・URL の永続化と復元 |
 | M5 | OSS 整備 | README / ライセンス / CI / 配布物 |

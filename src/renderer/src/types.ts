@@ -6,6 +6,10 @@ export interface LeafNode {
   kind: Kind;
   /** last-known url (browser panes only) */
   url: string;
+  /** pty session ids in this pane (terminal panes only; ≥1) */
+  sessions?: string[];
+  /** which session is shown (terminal panes only) */
+  activeSessionId?: string;
 }
 
 export interface SplitNode {

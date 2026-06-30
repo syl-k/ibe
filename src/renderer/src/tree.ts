@@ -7,7 +7,13 @@ export function makeId(prefix = "n"): string {
 }
 
 export function leaf(kind: Kind, url = "about:blank"): LeafNode {
-  return { type: "leaf", id: makeId("pane"), kind, url };
+  const base: LeafNode = { type: "leaf", id: makeId("pane"), kind, url };
+  if (kind === "terminal") {
+    const session = makeId("sess");
+    base.sessions = [session];
+    base.activeSessionId = session;
+  }
+  return base;
 }
 
 /** Find a leaf by id anywhere in the tree. */

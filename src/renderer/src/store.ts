@@ -61,6 +61,10 @@ interface State {
   toggleKind: (id: string) => void;
   setRatio: (splitId: string, ratio: number) => void;
   setUrl: (paneId: string, url: string) => void;
+
+  addSession: (paneId: string) => void;
+  closeSession: (paneId: string, sessionId: string) => void;
+  setActiveSession: (paneId: string, sessionId: string) => void;
 }
 
 /** Apply `fn` to the active tab's root, producing a new tabs array. */
@@ -130,11 +134,53 @@ export const useStore = create<State>((set, get) => ({
   toggleKind: (id) =>
     set((s) =>
       withActiveRoot(s, (root) =>
-        transformLeaf(root, id, (l) => ({
+        // fresh leaf -> clean view/pty lifecycle and correct per-kind fields
+        transformLeaf(root, id, (l) =>
+          leaf(l.kind === "browser" ? "terminal" : "browser", l.url)
+        )
+      )
+    ),
+
+  addSession: (paneId) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => {
+          if (l.kind !== "terminal") return l;
+          const session = makeId("sess");
+          return {
+            ...l,
+            sessions: [...(l.sessions ?? []), session],
+            activeSessionId: session,
+          };
+        })
+      )
+    ),
+
+  closeSession: (paneId, sessionId) =>
+    set((s) => {
+      const leafNode = findLeaf(
+        s.tabs.find((t) => t.id === s.activeTabId)!.root,
+        paneId
+      );
+      const remaining = (leafNode?.sessions ?? []).filter((x) => x !== sessionId);
+      // closing the last session closes the whole pane
+      if (remaining.length === 0) {
+        return withActiveRoot(s, (root) => removeLeaf(root, paneId));
+      }
+      return withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => ({
           ...l,
-          kind: l.kind === "browser" ? "terminal" : "browser",
-          id: makeId("pane"), // new identity -> clean view lifecycle
+          sessions: remaining,
+          activeSessionId:
+            l.activeSessionId === sessionId ? remaining[0] : l.activeSessionId,
         }))
+      );
+    }),
+
+  setActiveSession: (paneId, sessionId) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => ({ ...l, activeSessionId: sessionId }))
       )
     ),
 

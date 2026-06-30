@@ -219,6 +219,62 @@ body.resizing {
   color: var(--muted);
   font-size: 12px;
 }
+/* --- in-pane terminal session tabs --- */
+.session-tabs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  overflow-x: auto;
+  max-width: calc(100% - 130px);
+}
+.session-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: default;
+}
+.session-tab.active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.session-label {
+  font-family: "SF Mono", Menlo, monospace;
+}
+.session-close,
+.session-add {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.session-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.session-add {
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 13px;
+  padding: 0 6px;
+  flex: 0 0 auto;
+}
+.session-add:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .terminal-host {
   background: var(--term-bg);
   padding: 6px 0 6px 8px;

@@ -4,12 +4,14 @@ import { collectLeaves } from "../tree";
 
 const ibe = window.ibe;
 
-/** Terminal leaf ids across every tab. */
+/** Every pty session id across every tab (a terminal pane has ≥1 session). */
 function terminalIds(tabs: Tab[]): Set<string> {
   const ids = new Set<string>();
   for (const t of tabs) {
     for (const l of collectLeaves(t.root)) {
-      if (l.kind === "terminal") ids.add(l.id);
+      if (l.kind === "terminal") {
+        for (const session of l.sessions ?? []) ids.add(session);
+      }
     }
   }
   return ids;
