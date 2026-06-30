@@ -2,6 +2,7 @@ import { app, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
 import { join } from "path";
 import type { Bounds } from "../shared/ipc";
 import { registerPtyHandlers, killAllPtys } from "./pty";
+import { registerBookmarks } from "./bookmarks";
 
 /**
  * Main process — owns one native WebContentsView per browser pane, keyed by the
@@ -135,6 +136,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
 });
 
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
+registerBookmarks(() => mainWindow?.webContents ?? null);
 
 app.whenReady().then(() => {
   createWindow();

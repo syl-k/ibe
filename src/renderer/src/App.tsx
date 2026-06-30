@@ -5,6 +5,7 @@ import { useBrowserViews } from "./hooks/useBrowserViews";
 import { useTerminals } from "./hooks/useTerminals";
 import { registerBoundsRunner, requestBoundsSync } from "./boundsSync";
 import { TabBar } from "./components/TabBar";
+import { BookmarksBar } from "./components/BookmarksBar";
 import { SplitView } from "./components/SplitView";
 
 const ibe = window.ibe;
@@ -46,6 +47,12 @@ export function App() {
     () => ibe.onOpenNew((r) => useStore.getState().openInNewPane(r.fromId, r.url)),
     []
   );
+
+  // bookmarks: initial load + live updates from main
+  useEffect(() => {
+    ibe.bookmarks.list().then((b) => useStore.getState().setBookmarks(b));
+    return ibe.bookmarks.onChange((b) => useStore.getState().setBookmarks(b));
+  }, []);
 
   // keyboard shortcuts
   useEffect(() => {
@@ -90,6 +97,7 @@ export function App() {
   return (
     <div className="app">
       <TabBar />
+      <BookmarksBar />
       <div className="workspace" ref={workspaceRef}>
         <SplitView node={activeTab.root} />
       </div>

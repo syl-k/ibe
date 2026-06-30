@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  Bookmark,
+  BookmarksApi,
   Bounds,
   BrowserState,
   IbeApi,
@@ -34,6 +36,17 @@ const term: TerminalApi = {
   },
 };
 
+const bookmarks: BookmarksApi = {
+  list: () => ipcRenderer.invoke("bookmarks:list"),
+  add: (entry) => ipcRenderer.invoke("bookmarks:add", entry),
+  remove: (url) => ipcRenderer.invoke("bookmarks:remove", url),
+  onChange: (cb) => {
+    const listener = (_e: unknown, list: Bookmark[]) => cb(list);
+    ipcRenderer.on("bookmarks:change", listener);
+    return () => ipcRenderer.removeListener("bookmarks:change", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -55,6 +68,7 @@ const api: IbeApi = {
     return () => ipcRenderer.removeListener("browser:open-new", listener);
   },
   term,
+  bookmarks,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

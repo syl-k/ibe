@@ -16,12 +16,23 @@ function normalizeUrl(input: string): string {
 export function BrowserPane({ node }: { node: LeafNode }) {
   const setUrl = useStore((s) => s.setUrl);
   const view = useStore((s) => s.viewState[node.id]);
+  const bookmarked = useStore((s) => s.bookmarks.some((b) => b.url === node.url));
   const [draft, setDraft] = useState(node.url);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loading = view?.loading ?? false;
   const canGoBack = view?.canGoBack ?? false;
   const canGoForward = view?.canGoForward ?? false;
+
+  const toggleBookmark = () => {
+    if (bookmarked) ibe.bookmarks.remove(node.url);
+    else
+      ibe.bookmarks.add({
+        url: node.url,
+        title: view?.title || node.url,
+        favicon: view?.favicon,
+      });
+  };
 
   // keep the address bar in sync with navigation, unless the user is editing it
   useEffect(() => {
@@ -75,6 +86,13 @@ export function BrowserPane({ node }: { node: LeafNode }) {
           onKeyDown={(e) => e.key === "Enter" && submit()}
           onFocus={(e) => e.target.select()}
         />
+        <button
+          className={bookmarked ? "starred" : ""}
+          title={bookmarked ? "ブックマーク解除" : "ブックマークに追加"}
+          onClick={toggleBookmark}
+        >
+          {bookmarked ? "★" : "☆"}
+        </button>
         <PaneActions id={node.id} toggleLabel="T" toggleTitle="ターミナルに切替" />
       </div>
       {/* native WebContentsView is positioned over this box by syncBounds */}

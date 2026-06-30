@@ -25,6 +25,22 @@ export interface OpenNewRequest {
   url: string;
 }
 
+export interface Bookmark {
+  url: string;
+  title: string;
+  favicon?: string;
+  /** epoch ms when added */
+  ts: number;
+}
+
+/** Persisted bookmarks, owned by the main process (userData/bookmarks.json). */
+export interface BookmarksApi {
+  list(): Promise<Bookmark[]>;
+  add(entry: { url: string; title: string; favicon?: string }): Promise<void>;
+  remove(url: string): Promise<void>;
+  onChange(cb: (bookmarks: Bookmark[]) => void): () => void;
+}
+
 /**
  * Terminal (pty) control surface. The pty itself lives in the main process and
  * outlives renderer mounts: it is spawned on `create`, killed only on `destroy`
@@ -62,4 +78,5 @@ export interface IbeApi {
   onOpenNew(cb: (req: OpenNewRequest) => void): () => void;
 
   term: TerminalApi;
+  bookmarks: BookmarksApi;
 }

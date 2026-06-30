@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { BrowserState } from "../../shared/ipc";
+import type { Bookmark, BrowserState } from "../../shared/ipc";
 import type { LayoutNode, Tab } from "./types";
 import {
   collectLeaves,
@@ -61,8 +61,11 @@ interface State {
   focusedPaneId: string | null;
   /** per-pane live browser state, keyed by pane id */
   viewState: Record<string, BrowserViewState>;
+  /** persisted bookmarks (mirrored from main) */
+  bookmarks: Bookmark[];
 
   setActiveTab: (id: string) => void;
+  setBookmarks: (b: Bookmark[]) => void;
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
@@ -103,8 +106,10 @@ export const useStore = create<State>((set, get) => ({
   activeTabId: first.id,
   focusedPaneId: null,
   viewState: {},
+  bookmarks: [],
 
   setActiveTab: (id) => set({ activeTabId: id }),
+  setBookmarks: (b) => set({ bookmarks: b }),
 
   addTab: () => {
     const tab = blankTab(`Workspace ${get().tabs.length + 1}`);

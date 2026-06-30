@@ -103,6 +103,44 @@ body.resizing {
   padding: 2px 8px;
 }
 
+/* --- bookmarks bar --- */
+.bookmarks-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px;
+  background: var(--pane-bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.bookmark {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  max-width: 160px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.bookmark:hover {
+  background: var(--border);
+}
+.bookmark-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toolbar button.starred {
+  color: var(--yellow, #f9e2af);
+  border-color: var(--yellow, #f9e2af);
+}
+
 /* --- workspace / splits --- */
 .workspace {
   position: relative;
