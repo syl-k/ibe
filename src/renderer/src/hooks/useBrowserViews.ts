@@ -13,7 +13,11 @@ const ibe = window.ibe;
  * Inactive-tab panes aren't in the DOM, so syncBounds only ever touches the
  * active tab — exactly the views that are visible.
  */
-export function useBrowserViews(tabs: Tab[], activeTabId: string) {
+export function useBrowserViews(
+  tabs: Tab[],
+  activeTabId: string,
+  omniboxPaneId: string | null
+) {
   const known = useRef(new Map<string, string>()); // id -> tabId
   const visible = useRef(new Map<string, boolean>());
   const lastBounds = useRef(new Map<string, string>());
@@ -40,16 +44,17 @@ export function useBrowserViews(tabs: Tab[], activeTabId: string) {
     }
   }, [tabs]);
 
-  // visibility follows the active tab
+  // visibility follows the active tab; a pane with its omnibox open is retracted
+  // so the suggestions dropdown (DOM) can show over its area.
   useLayoutEffect(() => {
     for (const [id, tabId] of known.current) {
-      const shouldShow = tabId === activeTabId;
+      const shouldShow = tabId === activeTabId && id !== omniboxPaneId;
       if (visible.current.get(id) !== shouldShow) {
         ibe.setVisible(id, shouldShow);
         visible.current.set(id, shouldShow);
       }
     }
-  }, [tabs, activeTabId]);
+  }, [tabs, activeTabId, omniboxPaneId]);
 
   const syncBounds = useCallback(() => {
     const nodes = document.querySelectorAll<HTMLElement>("[data-browser-id]");

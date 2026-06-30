@@ -4,6 +4,7 @@ import type {
   BookmarksApi,
   Bounds,
   BrowserState,
+  HistoryApi,
   IbeApi,
   OpenNewRequest,
   TerminalApi,
@@ -47,6 +48,11 @@ const bookmarks: BookmarksApi = {
   },
 };
 
+const history: HistoryApi = {
+  search: (query, limit) => ipcRenderer.invoke("history:search", query, limit),
+  recent: (limit) => ipcRenderer.invoke("history:recent", limit),
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -69,6 +75,7 @@ const api: IbeApi = {
   },
   term,
   bookmarks,
+  history,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

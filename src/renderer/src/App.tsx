@@ -13,10 +13,11 @@ const ibe = window.ibe;
 export function App() {
   const tabs = useStore((s) => s.tabs);
   const activeTabId = useStore((s) => s.activeTabId);
+  const omniboxPaneId = useStore((s) => s.omniboxPaneId);
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  const syncBounds = useBrowserViews(tabs, activeTabId);
+  const syncBounds = useBrowserViews(tabs, activeTabId, omniboxPaneId);
   useTerminals(tabs);
 
   // make the rAF-coalesced trigger run our bounds sync

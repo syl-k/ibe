@@ -264,6 +264,44 @@ body.resizing {
   flex: 1 1 auto;
 }
 
+/* omnibox history suggestions; shown over the retracted native view */
+.suggestions {
+  position: absolute;
+  top: var(--toolbar-h);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--pane-bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.suggestion.selected {
+  background: var(--border);
+}
+.suggestion-title {
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suggestion-url {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .content {
   flex: 1 1 auto;
   position: relative;

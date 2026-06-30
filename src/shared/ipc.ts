@@ -41,6 +41,20 @@ export interface BookmarksApi {
   onChange(cb: (bookmarks: Bookmark[]) => void): () => void;
 }
 
+export interface HistoryEntry {
+  url: string;
+  title: string;
+  /** epoch ms of the most recent visit */
+  ts: number;
+}
+
+/** Visited-page history, owned by main (userData/history.json). */
+export interface HistoryApi {
+  /** url/title substring match, most-recent first, deduped by url */
+  search(query: string, limit?: number): Promise<HistoryEntry[]>;
+  recent(limit?: number): Promise<HistoryEntry[]>;
+}
+
 /**
  * Terminal (pty) control surface. The pty itself lives in the main process and
  * outlives renderer mounts: it is spawned on `create`, killed only on `destroy`
@@ -79,4 +93,5 @@ export interface IbeApi {
 
   term: TerminalApi;
   bookmarks: BookmarksApi;
+  history: HistoryApi;
 }

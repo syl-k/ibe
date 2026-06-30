@@ -3,6 +3,7 @@ import { join } from "path";
 import type { Bounds } from "../shared/ipc";
 import { registerPtyHandlers, killAllPtys } from "./pty";
 import { registerBookmarks } from "./bookmarks";
+import { registerHistory, recordVisit } from "./history";
 
 /**
  * Main process — owns one native WebContentsView per browser pane, keyed by the
@@ -73,9 +74,15 @@ ipcMain.on("browser:create", (_e, id: string, url: string) => {
   mainWindow.contentView.addChildView(view);
 
   const wc = view.webContents;
-  wc.on("did-navigate", () => sendState(id));
+  wc.on("did-navigate", () => {
+    sendState(id);
+    recordVisit(wc.getURL(), wc.getTitle());
+  });
   wc.on("did-navigate-in-page", () => sendState(id));
-  wc.on("page-title-updated", () => sendState(id));
+  wc.on("page-title-updated", () => {
+    sendState(id);
+    recordVisit(wc.getURL(), wc.getTitle());
+  });
   wc.on("did-start-loading", () => sendState(id));
   wc.on("did-stop-loading", () => sendState(id));
   wc.on("page-favicon-updated", (_e, icons) => {
@@ -137,6 +144,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
 
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
 registerBookmarks(() => mainWindow?.webContents ?? null);
+registerHistory();
 
 app.whenReady().then(() => {
   createWindow();

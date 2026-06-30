@@ -63,9 +63,12 @@ interface State {
   viewState: Record<string, BrowserViewState>;
   /** persisted bookmarks (mirrored from main) */
   bookmarks: Bookmark[];
+  /** pane whose omnibox dropdown is open; its native view is retracted */
+  omniboxPaneId: string | null;
 
   setActiveTab: (id: string) => void;
   setBookmarks: (b: Bookmark[]) => void;
+  setOmnibox: (id: string | null) => void;
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
@@ -107,9 +110,11 @@ export const useStore = create<State>((set, get) => ({
   focusedPaneId: null,
   viewState: {},
   bookmarks: [],
+  omniboxPaneId: null,
 
   setActiveTab: (id) => set({ activeTabId: id }),
   setBookmarks: (b) => set({ bookmarks: b }),
+  setOmnibox: (id) => set({ omniboxPaneId: id }),
 
   addTab: () => {
     const tab = blankTab(`Workspace ${get().tabs.length + 1}`);
