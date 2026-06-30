@@ -174,7 +174,7 @@ MVP 後:
 | # | 目標 | 主な内容 |
 |---|------|----------|
 | M0 | プロトタイプ検証 ✅ **完了** | `WebContentsView` の多ペイン重ね合わせ・座標同期を技術検証 → [docs/m0-prototype.md](./m0-prototype.md)。成功。描画方式は `WebContentsView` で確定。 |
-| M1 | レイアウト基盤 | 再帰分割・リサイズ・ペイン開閉・タブ切り替え（中身はダミー可） |
+| M1 | レイアウト基盤 ✅ **完了** | 再帰分割・リサイズ・ペイン開閉・タブ切り替え（中身はダミー可）→ [docs/m1-layout.md](./m1-layout.md)。React + electron-vite + Zustand で実装。 |
 | M2 | ターミナル統合 | node-pty + xterm.js、ログイン shell 起動、ペイン内タブ |
 | M3 | ブラウザ統合 | URL 入力・表示・戻る/進む、ペインへの割り当て |
 | M4 | 状態復元 | レイアウト・タブ・URL の永続化と復元 |
@@ -185,7 +185,7 @@ MVP 後:
 
 ## 10. 未決事項
 
-- [ ] UI フレームワークの選定（React / Svelte / Solid など）。
+- [x] ~~UI フレームワークの選定~~ → **React + Vite(electron-vite) + Zustand で確定**（M1）。
 - [x] ~~ブラウザ描画の最終方式（`WebContentsView` か `<webview>` か）~~ → **`WebContentsView` で確定**（M0 検証済み）。
 - [ ] アプリ名 / プロダクト名（リポジトリ名は `ibe`）。
 - [ ] OSS ライセンスの選定（MIT / Apache-2.0 など）。

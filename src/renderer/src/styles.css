@@ -8,6 +8,7 @@
   --muted: #6c7086;
   --accent: #89b4fa;
   --term-bg: #11111b;
+  --tabbar-h: 38px;
   --toolbar-h: 34px;
 }
 
@@ -18,10 +19,14 @@
 }
 
 html,
-body {
+body,
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "Helvetica Neue", sans-serif;
@@ -29,12 +34,82 @@ body {
   user-select: none;
 }
 
-#root {
-  position: absolute;
-  inset: 0;
+body.resizing {
+  cursor: grabbing;
 }
 
-/* --- split containers --- */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* --- tab bar --- */
+.tabbar {
+  flex: 0 0 var(--tabbar-h);
+  display: flex;
+  align-items: flex-end;
+  background: var(--bg);
+  padding-left: 80px; /* room for macOS traffic lights (hiddenInset) */
+  -webkit-app-region: drag;
+}
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 0 6px;
+  -webkit-app-region: no-drag;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  max-width: 200px;
+}
+.tab.active {
+  background: var(--pane-bg);
+  color: var(--text);
+}
+.tab-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-close,
+.tab-add {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.tab-close:hover,
+.tab-add:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.tab-add {
+  font-size: 15px;
+  padding: 2px 8px;
+}
+
+/* --- workspace / splits --- */
+.workspace {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .split {
   display: flex;
   width: 100%;
@@ -46,7 +121,6 @@ body {
 .split.col {
   flex-direction: column;
 }
-
 .split-child {
   position: relative;
   overflow: hidden;
@@ -57,17 +131,15 @@ body {
 .resizer {
   flex: 0 0 6px;
   background: var(--resizer);
-  position: relative;
   z-index: 5;
 }
-.split.row > .resizer {
+.resizer.row {
   cursor: col-resize;
 }
-.split.col > .resizer {
+.resizer.col {
   cursor: row-resize;
 }
-.resizer:hover,
-.resizer.dragging {
+.resizer:hover {
   background: var(--resizer-hover);
 }
 
@@ -90,10 +162,8 @@ body {
   align-items: center;
   gap: 4px;
   padding: 0 6px;
-  background: var(--pane-bg);
   border-bottom: 1px solid var(--border);
 }
-
 .toolbar button {
   background: transparent;
   border: 1px solid var(--border);
@@ -106,15 +176,10 @@ body {
   font-size: 12px;
   line-height: 1;
 }
-.toolbar button:hover:not(:disabled) {
+.toolbar button:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
-.toolbar button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
 .toolbar .addressbar {
   flex: 1 1 auto;
   height: 22px;
@@ -125,44 +190,36 @@ body {
   padding: 0 8px;
   font-size: 12px;
   user-select: text;
-  min-width: 60px;
+  min-width: 50px;
 }
 .toolbar .addressbar:focus {
   outline: none;
   border-color: var(--accent);
 }
-
-.toolbar .spacer {
-  flex: 1 1 auto;
-}
-
 .toolbar .kind {
   color: var(--muted);
   font-size: 11px;
   padding: 0 4px;
 }
+.toolbar .spacer {
+  flex: 1 1 auto;
+}
 
-/* content area: browser panes leave this empty (WebContentsView overlays it);
-   terminal panes render a placeholder here. */
 .content {
   flex: 1 1 auto;
   position: relative;
   overflow: hidden;
 }
-
-.browser-placeholder {
-  position: absolute;
-  inset: 0;
+.browser-content {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.browser-hint {
   color: var(--muted);
   font-size: 12px;
 }
-
-.terminal-placeholder {
-  position: absolute;
-  inset: 0;
+.terminal-content {
   background: var(--term-bg);
   color: #a6e3a1;
   font-family: "SF Mono", Menlo, monospace;
@@ -172,7 +229,7 @@ body {
   user-select: text;
 }
 
-#hud {
+.hud {
   position: fixed;
   bottom: 8px;
   right: 10px;
@@ -186,7 +243,7 @@ body {
   pointer-events: none;
   font-family: "SF Mono", Menlo, monospace;
 }
-#hud-label {
+.hud-label {
   color: var(--accent);
   margin-right: 8px;
 }

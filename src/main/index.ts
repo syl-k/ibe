@@ -1,0 +1,129 @@
+import { app, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
+import { join } from "path";
+import type { Bounds } from "../shared/ipc";
+
+/**
+ * Main process — owns one native WebContentsView per browser pane, keyed by the
+ * renderer's pane id. The renderer owns the layout and tells us where each view
+ * goes (setBounds) and whether it's on the active tab (setVisible).
+ */
+
+const views = new Map<string, WebContentsView>();
+let mainWindow: BrowserWindow | null = null;
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 920,
+    backgroundColor: "#1e1e2e",
+    titleBarStyle: "hiddenInset",
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  // Open target=_blank etc. in the system browser rather than a popup window
+  // (pane-aware new-tab handling comes later).
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  if (process.env["ELECTRON_RENDERER_URL"]) {
+    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+  } else {
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+
+  mainWindow.on("closed", () => {
+    for (const view of views.values()) view.webContents.close();
+    views.clear();
+    mainWindow = null;
+  });
+}
+
+function sendState(id: string): void {
+  const view = views.get(id);
+  if (!view || !mainWindow) return;
+  const wc = view.webContents;
+  mainWindow.webContents.send("browser:state", {
+    id,
+    url: wc.getURL(),
+    title: wc.getTitle(),
+    canGoBack: wc.navigationHistory.canGoBack(),
+    canGoForward: wc.navigationHistory.canGoForward(),
+  });
+}
+
+ipcMain.on("browser:create", (_e, id: string, url: string) => {
+  if (!mainWindow || views.has(id)) return;
+
+  const view = new WebContentsView();
+  views.set(id, view);
+  mainWindow.contentView.addChildView(view);
+
+  const wc = view.webContents;
+  wc.on("did-navigate", () => sendState(id));
+  wc.on("did-navigate-in-page", () => sendState(id));
+  wc.on("page-title-updated", () => sendState(id));
+  wc.setWindowOpenHandler(({ url: target }) => {
+    shell.openExternal(target);
+    return { action: "deny" };
+  });
+
+  wc.loadURL(url).catch((err) =>
+    console.error(`[browser:create] ${url}:`, err.message)
+  );
+});
+
+ipcMain.on("browser:setBounds", (_e, id: string, b: Bounds) => {
+  views.get(id)?.setBounds({
+    x: Math.round(b.x),
+    y: Math.round(b.y),
+    width: Math.round(b.width),
+    height: Math.round(b.height),
+  });
+});
+
+ipcMain.on("browser:setVisible", (_e, id: string, visible: boolean) => {
+  views.get(id)?.setVisible(visible);
+});
+
+ipcMain.on("browser:navigate", (_e, id: string, url: string) => {
+  views
+    .get(id)
+    ?.webContents.loadURL(url)
+    .catch((err) => console.error(`[browser:navigate] ${url}:`, err.message));
+});
+
+ipcMain.on("browser:goBack", (_e, id: string) =>
+  views.get(id)?.webContents.navigationHistory.goBack()
+);
+ipcMain.on("browser:goForward", (_e, id: string) =>
+  views.get(id)?.webContents.navigationHistory.goForward()
+);
+ipcMain.on("browser:reload", (_e, id: string) =>
+  views.get(id)?.webContents.reload()
+);
+
+ipcMain.on("browser:destroy", (_e, id: string) => {
+  const view = views.get(id);
+  if (!view || !mainWindow) return;
+  mainWindow.contentView.removeChildView(view);
+  view.webContents.close();
+  views.delete(id);
+});
+
+app.whenReady().then(() => {
+  createWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
