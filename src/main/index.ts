@@ -4,6 +4,7 @@ import type { Bounds } from "../shared/ipc";
 import { registerPtyHandlers, killAllPtys } from "./pty";
 import { registerBookmarks } from "./bookmarks";
 import { registerHistory, recordVisit } from "./history";
+import { registerSession } from "./session";
 
 /**
  * Main process — owns one native WebContentsView per browser pane, keyed by the
@@ -145,6 +146,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
 registerBookmarks(() => mainWindow?.webContents ?? null);
 registerHistory();
+registerSession();
 
 app.whenReady().then(() => {
   createWindow();

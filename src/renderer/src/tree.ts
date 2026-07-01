@@ -6,6 +6,19 @@ export function makeId(prefix = "n"): string {
   return `${prefix}-${counter}`;
 }
 
+/**
+ * Advance the id counter past any numeric suffix seen in `ids`, so ids minted
+ * after restoring a persisted session can't collide with restored ones.
+ */
+export function reseedCounter(ids: Iterable<string>): void {
+  let max = counter;
+  for (const id of ids) {
+    const m = /(\d+)$/.exec(id);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  counter = max;
+}
+
 export function leaf(kind: Kind, url = "about:blank"): LeafNode {
   const base: LeafNode = { type: "leaf", id: makeId("pane"), kind, url };
   if (kind === "terminal") {

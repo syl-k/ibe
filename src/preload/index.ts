@@ -7,6 +7,7 @@ import type {
   HistoryApi,
   IbeApi,
   OpenNewRequest,
+  SessionApi,
   TerminalApi,
 } from "../shared/ipc";
 
@@ -53,6 +54,11 @@ const history: HistoryApi = {
   recent: (limit) => ipcRenderer.invoke("history:recent", limit),
 };
 
+const session: SessionApi = {
+  load: () => ipcRenderer.invoke("session:load"),
+  save: (data) => ipcRenderer.send("session:save", data),
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -76,6 +82,7 @@ const api: IbeApi = {
   term,
   bookmarks,
   history,
+  session,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

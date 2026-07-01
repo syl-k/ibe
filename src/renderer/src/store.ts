@@ -7,6 +7,7 @@ import {
   leaf,
   makeId,
   removeLeaf,
+  reseedCounter,
   setSplitRatio,
   split,
   transformLeaf,
@@ -87,6 +88,82 @@ interface State {
   addSession: (paneId: string) => void;
   closeSession: (paneId: string, sessionId: string) => void;
   setActiveSession: (paneId: string, sessionId: string) => void;
+
+  /** replace the layout from a persisted session (validated) */
+  hydrate: (raw: unknown) => void;
+}
+
+const SESSION_VERSION = 1;
+
+export interface PersistedSession {
+  version: number;
+  activeTabId: string;
+  tabs: Tab[];
+}
+
+/** Drop live pty session ids before persisting (they don't survive a restart). */
+function stripSessions(node: LayoutNode): LayoutNode {
+  if (node.type === "leaf") {
+    if (node.kind !== "terminal") return node;
+    return { type: "leaf", id: node.id, kind: "terminal", url: node.url };
+  }
+  return {
+    ...node,
+    children: [stripSessions(node.children[0]), stripSessions(node.children[1])],
+  };
+}
+
+/** Give every terminal leaf one fresh session (a new shell) after restore. */
+function freshSessions(node: LayoutNode): LayoutNode {
+  if (node.type === "leaf") {
+    if (node.kind !== "terminal") return node;
+    const session = makeId("sess");
+    return { ...node, sessions: [session], activeSessionId: session };
+  }
+  return {
+    ...node,
+    children: [freshSessions(node.children[0]), freshSessions(node.children[1])],
+  };
+}
+
+/** Serialize the persistable slice of the store (layout + active tab). */
+export function serializeSession(s: State): PersistedSession {
+  return {
+    version: SESSION_VERSION,
+    activeTabId: s.activeTabId,
+    tabs: s.tabs.map((t) => ({ ...t, root: stripSessions(t.root) })),
+  };
+}
+
+function isLayoutNode(n: unknown): n is LayoutNode {
+  if (!n || typeof n !== "object") return false;
+  const node = n as { type?: unknown };
+  if (node.type === "leaf") {
+    const l = n as { id?: unknown; kind?: unknown };
+    return (
+      typeof l.id === "string" &&
+      (l.kind === "browser" || l.kind === "terminal")
+    );
+  }
+  if (node.type === "split") {
+    const sp = n as { id?: unknown; children?: unknown };
+    return (
+      typeof sp.id === "string" &&
+      Array.isArray(sp.children) &&
+      sp.children.length === 2 &&
+      isLayoutNode(sp.children[0]) &&
+      isLayoutNode(sp.children[1])
+    );
+  }
+  return false;
+}
+
+function collectIds(node: LayoutNode, out: string[]): void {
+  out.push(node.id);
+  if (node.type === "split") {
+    collectIds(node.children[0], out);
+    collectIds(node.children[1], out);
+  }
 }
 
 /** Apply `fn` to the active tab's root, producing a new tabs array. */
@@ -210,6 +287,47 @@ export const useStore = create<State>((set, get) => ({
         transformLeaf(root, paneId, (l) => ({ ...l, activeSessionId: sessionId }))
       )
     ),
+
+  hydrate: (raw) => {
+    const data = raw as Partial<PersistedSession> | null;
+    if (
+      !data ||
+      data.version !== SESSION_VERSION ||
+      !Array.isArray(data.tabs) ||
+      data.tabs.length === 0 ||
+      typeof data.activeTabId !== "string"
+    ) {
+      return; // missing / unknown schema -> keep the default layout
+    }
+
+    // validate each tab; bail entirely on anything malformed
+    const raws = data.tabs as unknown[];
+    const valid: Tab[] = [];
+    for (const t of raws) {
+      const tab = t as { id?: unknown; title?: unknown; root?: unknown };
+      if (typeof tab.id !== "string" || !isLayoutNode(tab.root)) return;
+      valid.push({
+        id: tab.id,
+        title: typeof tab.title === "string" ? tab.title : "Workspace",
+        root: tab.root,
+      });
+    }
+
+    // reseed the id counter past restored ids, then mint fresh terminal sessions
+    const ids: string[] = [];
+    for (const t of valid) {
+      ids.push(t.id);
+      collectIds(t.root, ids);
+    }
+    reseedCounter(ids);
+
+    const tabs = valid.map((t) => ({ ...t, root: freshSessions(t.root) }));
+    const activeTabId = tabs.some((t) => t.id === data.activeTabId)
+      ? data.activeTabId
+      : tabs[0].id;
+
+    set({ tabs, activeTabId, focusedPaneId: null, viewState: {}, omniboxPaneId: null });
+  },
 
   setRatio: (splitId, ratio) =>
     set((s) => withActiveRoot(s, (root) => setSplitRatio(root, splitId, ratio))),

@@ -76,6 +76,16 @@ export interface TerminalApi {
   onExit(id: string, cb: (exitCode: number) => void): () => void;
 }
 
+/**
+ * Session persistence (userData/session.json). Main is a dumb JSON store; the
+ * renderer owns the layout shape and validates on load. Payload is
+ * `{ version, tabs, activeTabId }` — see the renderer's PersistedSession.
+ */
+export interface SessionApi {
+  load(): Promise<unknown>;
+  save(session: unknown): void;
+}
+
 /** The API the preload bridge exposes on `window.ibe`. */
 export interface IbeApi {
   createBrowser(id: string, url: string): void;
@@ -94,4 +104,5 @@ export interface IbeApi {
   term: TerminalApi;
   bookmarks: BookmarksApi;
   history: HistoryApi;
+  session: SessionApi;
 }
