@@ -1,10 +1,18 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  Menu,
+  WebContentsView,
+  ipcMain,
+  shell,
+} from "electron";
 import { join } from "path";
 import type { Bounds } from "../shared/ipc";
 import { registerPtyHandlers, killAllPtys } from "./pty";
 import { registerBookmarks } from "./bookmarks";
 import { registerHistory, recordVisit } from "./history";
 import { registerSession } from "./session";
+import { buildAppMenu } from "./menu";
 
 /**
  * Main process — owns one native WebContentsView per browser pane, keyed by the
@@ -90,6 +98,9 @@ ipcMain.on("browser:create", (_e, id: string, url: string) => {
     favicons.set(id, icons[0] ?? "");
     sendState(id);
   });
+  // clicking into a web page should make it the focused pane, so pane-relative
+  // shortcuts (reload / focus-address / split) act on the pane in use
+  wc.on("focus", () => mainWindow?.webContents.send("browser:focus-pane", id));
   // Link/popup wanting a new window → ask the renderer to open it in a new pane.
   wc.setWindowOpenHandler(({ url: target }) => {
     mainWindow?.webContents.send("browser:open-new", { fromId: id, url: target });
@@ -149,6 +160,7 @@ registerHistory();
 registerSession();
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(buildAppMenu(() => mainWindow?.webContents ?? null));
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

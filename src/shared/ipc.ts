@@ -25,6 +25,22 @@ export interface OpenNewRequest {
   url: string;
 }
 
+/**
+ * App-menu accelerator actions. Routed through the native menu (not a renderer
+ * keydown) so they fire even while a WebContentsView has keyboard focus. The
+ * renderer resolves pane-relative actions against its own focusedPaneId.
+ */
+export type ShortcutAction =
+  | "new-tab"
+  | "close-pane"
+  | "close-tab"
+  | "split-h"
+  | "split-v"
+  | "prev-tab"
+  | "next-tab"
+  | "focus-address"
+  | "reload";
+
 export interface Bookmark {
   url: string;
   title: string;
@@ -100,6 +116,10 @@ export interface IbeApi {
   onState(cb: (state: BrowserState) => void): () => void;
   /** A browser pane asked to open a url in a new window → open it in a new pane. */
   onOpenNew(cb: (req: OpenNewRequest) => void): () => void;
+  /** app-menu accelerator fired (works even when a web pane has focus) */
+  onShortcut(cb: (action: ShortcutAction) => void): () => void;
+  /** a browser pane's native view gained focus → sync focusedPaneId */
+  onFocusPane(cb: (paneId: string) => void): () => void;
 
   term: TerminalApi;
   bookmarks: BookmarksApi;

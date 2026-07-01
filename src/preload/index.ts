@@ -8,6 +8,7 @@ import type {
   IbeApi,
   OpenNewRequest,
   SessionApi,
+  ShortcutAction,
   TerminalApi,
 } from "../shared/ipc";
 
@@ -78,6 +79,16 @@ const api: IbeApi = {
     const listener = (_e: unknown, req: OpenNewRequest) => cb(req);
     ipcRenderer.on("browser:open-new", listener);
     return () => ipcRenderer.removeListener("browser:open-new", listener);
+  },
+  onShortcut: (cb) => {
+    const listener = (_e: unknown, action: ShortcutAction) => cb(action);
+    ipcRenderer.on("shortcut", listener);
+    return () => ipcRenderer.removeListener("shortcut", listener);
+  },
+  onFocusPane: (cb) => {
+    const listener = (_e: unknown, paneId: string) => cb(paneId);
+    ipcRenderer.on("browser:focus-pane", listener);
+    return () => ipcRenderer.removeListener("browser:focus-pane", listener);
   },
   term,
   bookmarks,

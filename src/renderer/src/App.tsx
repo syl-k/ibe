@@ -55,42 +55,56 @@ export function App() {
     return ibe.bookmarks.onChange((b) => useStore.getState().setBookmarks(b));
   }, []);
 
-  // keyboard shortcuts
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!e.metaKey) return;
-      const st = useStore.getState();
-      const focused = st.focusedPaneId;
-      const isLeaf = (id: string | null) =>
-        id != null && collectLeaves(activeTab.root).some((l) => l.id === id);
+  // a browser view gaining focus makes it the focused pane
+  useEffect(() => ibe.onFocusPane((id) => useStore.getState().focusPane(id)), []);
 
-      if (e.key === "t") {
-        e.preventDefault();
-        st.addTab();
-      } else if (e.key === "d" && isLeaf(focused)) {
-        e.preventDefault();
-        st.splitPane(focused!, e.shiftKey ? "col" : "row");
-      } else if (e.key === "[") {
-        e.preventDefault();
-        st.nextTab(-1);
-      } else if (e.key === "]") {
-        e.preventDefault();
-        st.nextTab(1);
-      } else if (e.key === "l" && isLeaf(focused)) {
-        e.preventDefault();
-        const input = document.querySelector<HTMLInputElement>(
-          `.addressbar[data-address-for="${focused}"]`
-        );
-        input?.focus();
-        input?.select();
-      } else if (e.key === "r" && isLeaf(focused)) {
-        e.preventDefault();
-        ibe.reload(focused!);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [activeTab.root]);
+  // shortcuts arrive from the native app menu (they fire even when a web pane
+  // holds keyboard focus). Resolve pane-relative actions against the store.
+  useEffect(
+    () =>
+      ibe.onShortcut((action) => {
+        const st = useStore.getState();
+        const tab = st.tabs.find((t) => t.id === st.activeTabId);
+        if (!tab) return;
+        const leaves = collectLeaves(tab.root);
+        // the focused pane if it's on the active tab, else the first leaf
+        const target =
+          leaves.find((l) => l.id === st.focusedPaneId) ?? leaves[0];
+
+        switch (action) {
+          case "new-tab":
+            return st.addTab();
+          case "close-pane":
+            // closing the tab's only pane closes the tab instead
+            return leaves.length === 1
+              ? st.closeTab(st.activeTabId)
+              : st.closePane(target.id);
+          case "close-tab":
+            return st.closeTab(st.activeTabId);
+          case "split-h":
+            return st.splitPane(target.id, "row");
+          case "split-v":
+            return st.splitPane(target.id, "col");
+          case "prev-tab":
+            return st.nextTab(-1);
+          case "next-tab":
+            return st.nextTab(1);
+          case "reload":
+            if (target.kind === "browser") ibe.reload(target.id);
+            return;
+          case "focus-address": {
+            if (target.kind !== "browser") return;
+            const input = document.querySelector<HTMLInputElement>(
+              `.addressbar[data-address-for="${target.id}"]`
+            );
+            input?.focus();
+            input?.select();
+            return;
+          }
+        }
+      }),
+    []
+  );
 
   const leaves = collectLeaves(activeTab.root);
   const browsers = leaves.filter((l) => l.kind === "browser").length;
