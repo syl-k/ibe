@@ -1,0 +1,25 @@
+appId: com.tkikuyama.ibe
+productName: ibe
+directories:
+  output: release
+  buildResources: build
+
+# App code. Production node_modules (incl. the native node-pty) are bundled by
+# electron-builder automatically; node-pty must live outside the asar so its
+# native binary and spawn-helper can be executed.
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  # Local, unsigned build. For distribution, set up signing + notarization.
+  identity: null
+
+# Skip publishing; this config only produces local artifacts.
+publish: null

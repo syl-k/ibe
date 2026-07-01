@@ -178,7 +178,7 @@ MVP 後:
 | M2 | ターミナル統合 ✅ **完了** | node-pty + xterm.js、ログイン shell 起動、ペイン内タブ → [docs/m2-terminal.md](./m2-terminal.md) |
 | M3 | ブラウザ統合 ✅ **完了** | URL 入力・表示・戻る/進む（M1済）+ 停止/ファビコン/履歴/ブックマーク/リンクのペイン割り当て → [docs/m3-browser.md](./m3-browser.md) |
 | M4 | 状態復元 ✅ **完了** | レイアウト・タブ・URL の永続化と復元（ターミナルは枠のみ・shell 再起動）→ [docs/m4-persistence.md](./m4-persistence.md) |
-| M5 | OSS 整備 | README / ライセンス / CI / 配布物 |
+| M5 | OSS 整備 ✅ **完了** | README / CONTRIBUTING / MIT / CI（typecheck+build）/ electron-builder による dmg 配布 → [docs/m5-oss.md](./m5-oss.md) |
 | 以降 | 拡張機能・複数プロファイル・リッチターミナル・履歴ビュー等 | [3.2] の「将来」項目（履歴/ブックマークの基本は M3 で実装済み） |
 
 ---
