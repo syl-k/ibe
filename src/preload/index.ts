@@ -8,6 +8,8 @@ import type {
   IbeApi,
   OpenNewRequest,
   SessionApi,
+  Settings,
+  SettingsApi,
   ShortcutAction,
   TerminalApi,
 } from "../shared/ipc";
@@ -60,6 +62,16 @@ const session: SessionApi = {
   save: (data) => ipcRenderer.send("session:save", data),
 };
 
+const settings: SettingsApi = {
+  load: () => ipcRenderer.invoke("settings:load"),
+  save: (s) => ipcRenderer.send("settings:save", s),
+  onChange: (cb) => {
+    const listener = (_e: unknown, s: Settings) => cb(s);
+    ipcRenderer.on("settings:change", listener);
+    return () => ipcRenderer.removeListener("settings:change", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -94,6 +106,7 @@ const api: IbeApi = {
   bookmarks,
   history,
   session,
+  settings,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

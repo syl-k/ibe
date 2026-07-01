@@ -1,6 +1,7 @@
 import { ipcMain, type WebContents } from "electron";
 import { homedir } from "os";
 import * as pty from "node-pty";
+import { getSettings } from "./settings";
 
 /**
  * Owns one login-shell pty per terminal pane, keyed by the renderer's pane id.
@@ -22,7 +23,8 @@ interface Session {
 const sessions = new Map<string, Session>();
 
 function loginShell(): string {
-  return process.env["SHELL"] || "/bin/zsh";
+  // an explicit setting wins; otherwise fall back to the user's login shell
+  return getSettings().shell.trim() || process.env["SHELL"] || "/bin/zsh";
 }
 
 function send(wc: WebContents, channel: string, payload: unknown): void {

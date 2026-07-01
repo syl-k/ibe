@@ -39,7 +39,35 @@ export type ShortcutAction =
   | "prev-tab"
   | "next-tab"
   | "focus-address"
-  | "reload";
+  | "reload"
+  | "open-settings";
+
+export type ThemeName = "mocha" | "latte";
+
+/**
+ * User preferences (userData/settings.json). Owned by the main process so the
+ * pty layer can read the shell choice synchronously; the renderer applies theme
+ * and terminal font live and persists edits via `settings.save`.
+ */
+export interface Settings {
+  /** app + terminal colour theme */
+  theme: ThemeName;
+  /** xterm font family (CSS font-family string) */
+  terminalFontFamily: string;
+  /** xterm font size in px */
+  terminalFontSize: number;
+  /** custom shell path; empty = the user's login shell ($SHELL) */
+  shell: string;
+}
+
+/** Persisted user preferences, owned by the main process. */
+export interface SettingsApi {
+  load(): Promise<Settings>;
+  /** persist the full settings object (main validates + broadcasts) */
+  save(settings: Settings): void;
+  /** settings changed (from this or another window) */
+  onChange(cb: (settings: Settings) => void): () => void;
+}
 
 export interface Bookmark {
   url: string;
@@ -125,4 +153,5 @@ export interface IbeApi {
   bookmarks: BookmarksApi;
   history: HistoryApi;
   session: SessionApi;
+  settings: SettingsApi;
 }

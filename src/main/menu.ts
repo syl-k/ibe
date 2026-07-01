@@ -10,17 +10,41 @@ import type { ShortcutAction } from "../shared/ipc";
 export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
   const send = (action: ShortcutAction) => () => getWebContents()?.send("shortcut", action);
 
-  // Focus-address must first pull OS keyboard focus back to the renderer: if a
-  // native WebContentsView holds focus, focusing a renderer DOM input alone
-  // doesn't redirect keystrokes there.
-  const focusAddress = () => {
+  // Some actions target a renderer DOM element (address bar, settings modal).
+  // If a native WebContentsView holds OS keyboard focus, focusing renderer DOM
+  // alone doesn't redirect keystrokes there — pull focus back to the renderer
+  // first, then dispatch the action.
+  const focusThenSend = (action: ShortcutAction) => () => {
     const wc = getWebContents();
     if (!wc) return;
     wc.focus();
-    wc.send("shortcut", "focus-address");
+    wc.send("shortcut", action);
   };
 
   const isMac = process.platform === "darwin";
+
+  // On macOS, Settings lives in the app menu (⌘,) per platform convention; on
+  // other platforms it's surfaced under the Workspace menu below.
+  const appMenu: MenuItemConstructorOptions = {
+    label: app.name,
+    submenu: [
+      { role: "about" },
+      { type: "separator" },
+      {
+        label: "Settings…",
+        accelerator: "CmdOrCtrl+,",
+        click: focusThenSend("open-settings"),
+      },
+      { type: "separator" },
+      { role: "services" },
+      { type: "separator" },
+      { role: "hide" },
+      { role: "hideOthers" },
+      { role: "unhide" },
+      { type: "separator" },
+      { role: "quit" },
+    ],
+  };
 
   const workspaceMenu: MenuItemConstructorOptions = {
     label: "Workspace",
@@ -32,18 +56,23 @@ export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
       { label: "Split Right", accelerator: "CmdOrCtrl+D", click: send("split-h") },
       { label: "Split Down", accelerator: "CmdOrCtrl+Shift+D", click: send("split-v") },
       { type: "separator" },
-      { label: "Focus Address Bar", accelerator: "CmdOrCtrl+L", click: focusAddress },
+      { label: "Focus Address Bar", accelerator: "CmdOrCtrl+L", click: focusThenSend("focus-address") },
       { label: "Reload Pane", accelerator: "CmdOrCtrl+R", click: send("reload") },
       { type: "separator" },
       { label: "Previous Tab", accelerator: "CmdOrCtrl+Shift+[", click: send("prev-tab") },
       { label: "Next Tab", accelerator: "CmdOrCtrl+Shift+]", click: send("next-tab") },
+      // Settings lives in the app menu on macOS; expose it here elsewhere.
+      ...(isMac
+        ? []
+        : ([
+            { type: "separator" },
+            { label: "Settings…", accelerator: "CmdOrCtrl+,", click: focusThenSend("open-settings") },
+          ] as MenuItemConstructorOptions[])),
     ],
   };
 
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? [{ label: app.name, role: "appMenu" } as MenuItemConstructorOptions]
-      : []),
+    ...(isMac ? [appMenu] : []),
     { role: "editMenu" }, // undo/cut/copy/paste/selectAll — needed in browser & terminal
     workspaceMenu,
     { role: "windowMenu" },

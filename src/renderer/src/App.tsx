@@ -7,6 +7,8 @@ import { registerBoundsRunner, requestBoundsSync } from "./boundsSync";
 import { TabBar } from "./components/TabBar";
 import { BookmarksBar } from "./components/BookmarksBar";
 import { SplitView } from "./components/SplitView";
+import { SettingsModal } from "./components/SettingsModal";
+import { useSettings } from "./settings";
 
 const ibe = window.ibe;
 
@@ -14,10 +16,11 @@ export function App() {
   const tabs = useStore((s) => s.tabs);
   const activeTabId = useStore((s) => s.activeTabId);
   const omniboxPaneId = useStore((s) => s.omniboxPaneId);
+  const settingsOpen = useStore((s) => s.settingsOpen);
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  const syncBounds = useBrowserViews(tabs, activeTabId, omniboxPaneId);
+  const syncBounds = useBrowserViews(tabs, activeTabId, omniboxPaneId, settingsOpen);
   useTerminals(tabs);
 
   // make the rAF-coalesced trigger run our bounds sync
@@ -53,6 +56,12 @@ export function App() {
   useEffect(() => {
     ibe.bookmarks.list().then((b) => useStore.getState().setBookmarks(b));
     return ibe.bookmarks.onChange((b) => useStore.getState().setBookmarks(b));
+  }, []);
+
+  // settings: initial load + live updates from main
+  useEffect(() => {
+    ibe.settings.load().then((s) => useSettings.getState().replace(s));
+    return ibe.settings.onChange((s) => useSettings.getState().replace(s));
   }, []);
 
   // a browser view gaining focus makes it the focused pane
@@ -101,6 +110,8 @@ export function App() {
             input?.select();
             return;
           }
+          case "open-settings":
+            return st.setSettingsOpen(true);
         }
       }),
     []
@@ -122,6 +133,7 @@ export function App() {
         {" · "}
         {tabs.length} tab{tabs.length > 1 ? "s" : ""}
       </div>
+      {settingsOpen && <SettingsModal />}
     </div>
   );
 }

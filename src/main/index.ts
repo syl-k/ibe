@@ -12,6 +12,7 @@ import { registerPtyHandlers, killAllPtys } from "./pty";
 import { registerBookmarks } from "./bookmarks";
 import { registerHistory, recordVisit } from "./history";
 import { registerSession } from "./session";
+import { registerSettings } from "./settings";
 import { buildAppMenu } from "./menu";
 
 /**
@@ -154,6 +155,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
   favicons.delete(id);
 });
 
+registerSettings();
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
 registerBookmarks(() => mainWindow?.webContents ?? null);
 registerHistory();

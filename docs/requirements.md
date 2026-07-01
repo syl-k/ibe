@@ -179,6 +179,7 @@ MVP 後:
 | M3 | ブラウザ統合 ✅ **完了** | URL 入力・表示・戻る/進む（M1済）+ 停止/ファビコン/履歴/ブックマーク/リンクのペイン割り当て → [docs/m3-browser.md](./m3-browser.md) |
 | M4 | 状態復元 ✅ **完了** | レイアウト・タブ・URL の永続化と復元（ターミナルは枠のみ・shell 再起動）→ [docs/m4-persistence.md](./m4-persistence.md) |
 | M5 | OSS 整備 ✅ **完了** | README / CONTRIBUTING / MIT / CI（typecheck+build）/ electron-builder による dmg 配布 → [docs/m5-oss.md](./m5-oss.md) |
+| M6 | 設定 UI ✅ **完了** | テーマ（Mocha/Latte）・ターミナルフォント・デフォルト shell を変更/永続化/即時反映 → [docs/m6-settings.md](./m6-settings.md) |
 | 以降 | 拡張機能・複数プロファイル・リッチターミナル・履歴ビュー等 | [3.2] の「将来」項目（履歴/ブックマークの基本は M3 で実装済み） |
 
 ---
@@ -192,4 +193,5 @@ MVP 後:
 - [x] ~~キーボードショートカット体系（分割・移動・タブ操作）~~ → **アプリメニュー化で確定**。
   web ペインにフォーカスがあっても発火する → [docs/shortcuts.md](./shortcuts.md)。
 - [ ] Chrome 拡張サポートの具体的な対応範囲（実機検証後）。
-- [ ] 設定 UI（テーマ、フォント、デフォルト shell など）の範囲。
+- [x] ~~設定 UI（テーマ、フォント、デフォルト shell など）の範囲~~ → **M6 で実装**
+  （Catppuccin Mocha/Latte・ターミナルフォント・デフォルト shell）→ [docs/m6-settings.md](./m6-settings.md)。

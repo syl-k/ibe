@@ -66,10 +66,13 @@ interface State {
   bookmarks: Bookmark[];
   /** pane whose omnibox dropdown is open; its native view is retracted */
   omniboxPaneId: string | null;
+  /** settings modal open; all native browser views are retracted while true */
+  settingsOpen: boolean;
 
   setActiveTab: (id: string) => void;
   setBookmarks: (b: Bookmark[]) => void;
   setOmnibox: (id: string | null) => void;
+  setSettingsOpen: (open: boolean) => void;
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
@@ -188,10 +191,12 @@ export const useStore = create<State>((set, get) => ({
   viewState: {},
   bookmarks: [],
   omniboxPaneId: null,
+  settingsOpen: false,
 
   setActiveTab: (id) => set({ activeTabId: id }),
   setBookmarks: (b) => set({ bookmarks: b }),
   setOmnibox: (id) => set({ omniboxPaneId: id }),
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
 
   addTab: () => {
     const tab = blankTab(`Workspace ${get().tabs.length + 1}`);

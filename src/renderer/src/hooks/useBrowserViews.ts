@@ -16,7 +16,8 @@ const ibe = window.ibe;
 export function useBrowserViews(
   tabs: Tab[],
   activeTabId: string,
-  omniboxPaneId: string | null
+  omniboxPaneId: string | null,
+  settingsOpen: boolean
 ) {
   const known = useRef(new Map<string, string>()); // id -> tabId
   const visible = useRef(new Map<string, boolean>());
@@ -45,16 +46,19 @@ export function useBrowserViews(
   }, [tabs]);
 
   // visibility follows the active tab; a pane with its omnibox open is retracted
-  // so the suggestions dropdown (DOM) can show over its area.
+  // so the suggestions dropdown (DOM) can show over its area, and every view is
+  // retracted while the settings modal (DOM) is open so it isn't hidden behind
+  // the native views.
   useLayoutEffect(() => {
     for (const [id, tabId] of known.current) {
-      const shouldShow = tabId === activeTabId && id !== omniboxPaneId;
+      const shouldShow =
+        tabId === activeTabId && id !== omniboxPaneId && !settingsOpen;
       if (visible.current.get(id) !== shouldShow) {
         ibe.setVisible(id, shouldShow);
         visible.current.set(id, shouldShow);
       }
     }
-  }, [tabs, activeTabId, omniboxPaneId]);
+  }, [tabs, activeTabId, omniboxPaneId, settingsOpen]);
 
   const syncBounds = useCallback(() => {
     const nodes = document.querySelectorAll<HTMLElement>("[data-browser-id]");
