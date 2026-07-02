@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification, shell, type WebContents } from "electron";
+import { app, BrowserWindow, Notification, shell, type WebContents } from "electron";
 import { execFile } from "child_process";
 import { getSettings } from "./settings";
 
@@ -124,10 +124,25 @@ export function notifyTerminalActivity(
   // notification-attached sound may never play. afplay needs no permission.
   playAttentionSound();
 
-  const n = new Notification({
-    title: "ibe — ターミナル",
-    body: osc9 || "処理が完了、または入力待ちです",
-  });
+  const body = osc9 || "処理が完了、または入力待ちです";
+
+  // Unsigned dev builds can't post native notifications on macOS (the OS
+  // silently drops them). Fall back to osascript, which is Apple-signed and
+  // always shows — without click-to-reveal, but visible. Packaged builds use
+  // the native path so clicking focuses the session.
+  if (process.platform === "darwin" && !app.isPackaged) {
+    const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    execFile(
+      "osascript",
+      ["-e", `display notification "${esc(body)}" with title "ibe — ターミナル"`],
+      () => {
+        /* best-effort */
+      }
+    );
+    return;
+  }
+
+  const n = new Notification({ title: "ibe — ターミナル", body });
   n.on("click", () => {
     if (win && !win.isDestroyed()) {
       if (win.isMinimized()) win.restore();

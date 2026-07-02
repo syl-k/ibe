@@ -65,6 +65,21 @@ export function TerminalView({ sessionId }: { sessionId: string }) {
       cursorBlink: true,
       allowProposedApi: true,
     });
+    // Shift+Enter inserts a newline in CLIs like Claude Code. xterm.js sends a
+    // plain \r for it (indistinguishable from Enter, which submits), so remap
+    // it to backslash+CR — Claude Code's escaped-newline. This is exactly what
+    // its official /terminal-setup installs for iTerm2/VSCode. In a plain
+    // shell Shift+Enter becomes a line continuation, a fair trade-off.
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.key === "Enter" && e.shiftKey) {
+        // send once on keydown, but suppress keypress too — xterm handles both
+        // and would otherwise still emit a bare \r (submitting the input)
+        if (e.type === "keydown") ibe.term.input(sessionId, "\\\r");
+        return false;
+      }
+      return true;
+    });
+
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host);

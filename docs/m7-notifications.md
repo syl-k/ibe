@@ -66,6 +66,37 @@
 - これは「タブを開いている間、そのページ自身が出す通知」を OS に橋渡しするもの。タブと無関係に
   予定を通知するには Google Calendar API + OAuth 連携が必要（別途）。
 
+## 3.5 Claude Code で通知を受けるための設定(重要)
+
+Claude Code は**未知のターミナルでは既定で何も鳴らさない**(`preferredNotifChannel: "auto"` は
+iTerm2/Ghostty/Kitty 専用)。さらに**承認プロンプトの自動ベルは未実装**
+([anthropics/claude-code#36850](https://github.com/anthropics/claude-code/issues/36850))で、
+Notification フックが唯一の手段。`~/.claude/settings.json` に以下を設定する:
+
+```json
+{
+  "preferredNotifChannel": "terminal_bell",
+  "hooks": {
+    "Notification": [{
+      "matcher": "permission_prompt",
+      "hooks": [{ "type": "command", "command": "printf '\\a' > /dev/tty" }]
+    }]
+  }
+}
+```
+
+- `terminal_bell`: ターン完了時にベル → ibe が検出。
+- フック: 承認プロンプト表示時に BEL を **`/dev/tty` へ直接**書く(フックの stdout は
+  Claude Code に吸われるため `> /dev/tty` が必須)。
+- ibe 側は pty 環境の `TERM_PROGRAM` を `ibe` に正規化している(親ターミナルの
+  iTerm2/VSCode 等が漏れると Claude Code がそれ向けの通知方式を選んでしまうため)。
+
+### 開発ビルドでの通知表示
+署名なしの dev 実行体(`npm run dev`)は macOS の通知権限を得られず、ネイティブ通知が
+黙って破棄される。dev では `osascript -e 'display notification …'`(Apple 署名済み)に
+フォールバックして表示する(クリックでのセッション移動は不可)。パッケージ版はネイティブ
+通知(クリック移動あり)。音(afplay)は両方式共通。
+
 ## 4. 既知の制約 / 見送り
 
 - ベル検出なので、ベルを鳴らさない AI/コマンドには反応しない（完了検出の汎用フックは持たない）。

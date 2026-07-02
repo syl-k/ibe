@@ -22,6 +22,12 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, "src/renderer"),
+    server: {
+      // Vite's default 5173 collides with other local tools (e.g. OrbStack);
+      // strictPort surfaces a clash as an error instead of silently moving.
+      port: 5273,
+      strictPort: true,
+    },
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, "src/renderer/index.html") },

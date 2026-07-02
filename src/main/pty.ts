@@ -44,12 +44,23 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
   ipcMain.on("term:create", (_e, id: string, cols: number, rows: number) => {
     if (sessions.has(id)) return;
 
+    // Identify as our own terminal: the inherited env carries the launching
+    // terminal's TERM_PROGRAM (iTerm2/VSCode/…), which makes CLIs like Claude
+    // Code pick that terminal's notification protocol instead of the bell we
+    // detect for M7 notifications.
+    const env = {
+      ...process.env,
+      TERM: "xterm-256color",
+      TERM_PROGRAM: "ibe",
+    } as Record<string, string>;
+    delete env["TERM_PROGRAM_VERSION"];
+
     const proc = pty.spawn(loginShell(), ["-l"], {
       name: "xterm-256color",
       cols: Math.max(cols, 1),
       rows: Math.max(rows, 1),
       cwd: homedir(),
-      env: { ...process.env, TERM: "xterm-256color" } as Record<string, string>,
+      env,
     });
 
     const session: Session = {
