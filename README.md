@@ -25,6 +25,8 @@
   Google カレンダー等の Web 通知も許可オリジンのみ橋渡し（[docs/m7-notifications.md](docs/m7-notifications.md)）。
 - 📝 **エディタ** — フォルダを開いてファイルを閲覧・編集（CodeMirror 6）。ファイルツリー・
   ペイン内ファイルタブ・⌘S 保存・外部変更検知・Markdown プレビュー（[docs/m8-editor.md](docs/m8-editor.md)）。
+- 🔖 **Chrome ブックマーク** — ローカル Chrome プロファイルのブックマークを参照・自動追従
+  （Chrome の公式同期経由で実質アカウント同期。読み取り専用）（[docs/m9-chrome-bookmarks.md](docs/m9-chrome-bookmarks.md)）。
 - 🎹 **アプリメニューのショートカット** — web ペインにフォーカスがあっても効く（[docs/shortcuts.md](docs/shortcuts.md)）。
 
 ## 動作環境
@@ -89,6 +91,7 @@ src/
 [M6 設定](docs/m6-settings.md) ·
 [M7 通知](docs/m7-notifications.md) ·
 [M8 エディタ](docs/m8-editor.md) ·
+[M9 Chrome ブックマーク](docs/m9-chrome-bookmarks.md) ·
 [ショートカット](docs/shortcuts.md)
 
 ## ロードマップ
@@ -102,7 +105,8 @@ src/
 - [x] M5 OSS 整備（README・CI・electron-builder 配布）
 - [x] M6 設定 UI（テーマ・フォント・デフォルト shell）
 - [x] M7 ターミナル通知（cmux 風・ベル検出）
-- [x] M8 エディタペイン（フォルダ・ツリー・CodeMirror 6）
+- [x] M8 エディタペイン（フォルダ・ツリー・CodeMirror 6・md プレビュー）
+- [x] M9 Chrome ブックマーク参照（自動追従・読み取り専用）
 - [ ] 以降: 署名/notarization・アプリアイコン・Chrome 拡張・複数プロファイル・リッチターミナル 等
 
 ## コントリビュート

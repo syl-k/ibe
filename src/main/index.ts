@@ -14,6 +14,7 @@ import { registerHistory, recordVisit } from "./history";
 import { registerSession } from "./session";
 import { registerSettings } from "./settings";
 import { registerEditor } from "./editor";
+import { registerChromeBookmarks } from "./chromeBookmarks";
 import { registerWebPermissions } from "./permissions";
 import { buildAppMenu } from "./menu";
 
@@ -159,6 +160,7 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
 
 registerSettings();
 registerEditor(() => mainWindow?.webContents ?? null);
+registerChromeBookmarks(() => mainWindow?.webContents ?? null);
 registerPtyHandlers(() => mainWindow?.webContents ?? null);
 registerBookmarks(() => mainWindow?.webContents ?? null);
 registerHistory();

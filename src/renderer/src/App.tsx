@@ -19,10 +19,16 @@ export function App() {
   const activeTabId = useStore((s) => s.activeTabId);
   const omniboxPaneId = useStore((s) => s.omniboxPaneId);
   const settingsOpen = useStore((s) => s.settingsOpen);
+  const chromeMenuOpen = useStore((s) => s.chromeMenuOpen);
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
   const workspaceRef = useRef<HTMLDivElement>(null);
 
-  const syncBounds = useBrowserViews(tabs, activeTabId, omniboxPaneId, settingsOpen);
+  const syncBounds = useBrowserViews(
+    tabs,
+    activeTabId,
+    omniboxPaneId,
+    settingsOpen || chromeMenuOpen
+  );
   useTerminals(tabs);
 
   // make the rAF-coalesced trigger run our bounds sync
@@ -64,6 +70,31 @@ export function App() {
   useEffect(() => {
     ibe.settings.load().then((s) => useSettings.getState().replace(s));
     return ibe.settings.onChange((s) => useSettings.getState().replace(s));
+  }, []);
+
+  // Chrome bookmarks: (re)load whenever the configured profile changes, and
+  // follow disk changes (Chrome's own sync keeps that file current).
+  useEffect(() => {
+    let current = "";
+    const apply = (profile: string) => {
+      if (profile === current) return;
+      current = profile;
+      if (!profile) return useStore.getState().setChromeBookmarks([]);
+      ibe.chromeBookmarks
+        .get(profile)
+        .then((tree) => useStore.getState().setChromeBookmarks(tree));
+    };
+    apply(useSettings.getState().settings.chromeProfile);
+    const offSettings = useSettings.subscribe((s) =>
+      apply(s.settings.chromeProfile)
+    );
+    const offChange = ibe.chromeBookmarks.onChange((tree) =>
+      useStore.getState().setChromeBookmarks(tree)
+    );
+    return () => {
+      offSettings();
+      offChange();
+    };
   }, []);
 
   // a browser view gaining focus makes it the focused pane

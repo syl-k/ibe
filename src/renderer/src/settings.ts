@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   terminalFontSize: 12,
   shell: "",
   notifyOnBell: true,
+  chromeProfile: "",
 };
 
 /** Apply the theme by tagging the document root; CSS variables key off it. */

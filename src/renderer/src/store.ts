@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Bookmark, BrowserState } from "../../shared/ipc";
+import type { Bookmark, BrowserState, ChromeBookmarkNode } from "../../shared/ipc";
 import type { LayoutNode, Tab } from "./types";
 import {
   collectLeaves,
@@ -68,11 +68,17 @@ interface State {
   omniboxPaneId: string | null;
   /** settings modal open; all native browser views are retracted while true */
   settingsOpen: boolean;
+  /** read-only mirror of the configured Chrome profile's bookmark tree */
+  chromeBookmarks: ChromeBookmarkNode[];
+  /** Chrome bookmarks dropdown open; native views retracted while true */
+  chromeMenuOpen: boolean;
 
   setActiveTab: (id: string) => void;
   setBookmarks: (b: Bookmark[]) => void;
   setOmnibox: (id: string | null) => void;
   setSettingsOpen: (open: boolean) => void;
+  setChromeBookmarks: (tree: ChromeBookmarkNode[]) => void;
+  setChromeMenuOpen: (open: boolean) => void;
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
@@ -228,11 +234,15 @@ export const useStore = create<State>((set, get) => ({
   bookmarks: [],
   omniboxPaneId: null,
   settingsOpen: false,
+  chromeBookmarks: [],
+  chromeMenuOpen: false,
 
   setActiveTab: (id) => set({ activeTabId: id }),
   setBookmarks: (b) => set({ bookmarks: b }),
   setOmnibox: (id) => set({ omniboxPaneId: id }),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+  setChromeBookmarks: (tree) => set({ chromeBookmarks: tree }),
+  setChromeMenuOpen: (open) => set({ chromeMenuOpen: open }),
 
   addTab: () => {
     const tab = blankTab(`Workspace ${get().tabs.length + 1}`);

@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   terminalFontSize: 12,
   shell: "",
   notifyOnBell: true,
+  chromeProfile: "",
 };
 
 let current: Settings = DEFAULT_SETTINGS;
@@ -39,6 +40,7 @@ function coerce(raw: unknown): Settings {
       typeof r.notifyOnBell === "boolean"
         ? r.notifyOnBell
         : DEFAULT_SETTINGS.notifyOnBell,
+    chromeProfile: typeof r.chromeProfile === "string" ? r.chromeProfile : "",
   };
 }
 

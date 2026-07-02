@@ -62,6 +62,8 @@ export interface Settings {
   /** show an OS notification when a terminal rings the bell (AI turn done /
    * input awaited) while the window is not focused */
   notifyOnBell: boolean;
+  /** Chrome profile directory whose bookmarks ibe mirrors ("" = disabled) */
+  chromeProfile: string;
 }
 
 /** Persisted user preferences, owned by the main process. */
@@ -124,6 +126,36 @@ export interface TerminalApi {
   onExit(id: string, cb: (exitCode: number) => void): () => void;
   /** report the sessions currently on-screen so bells for them aren't notified */
   setVisibleSessions(ids: string[]): void;
+}
+
+/** A Chrome profile that has a Bookmarks file. */
+export interface ChromeProfile {
+  /** profile directory name, e.g. "Default", "Profile 1" */
+  id: string;
+  /** display name from Chrome's Local State */
+  name: string;
+}
+
+/** A node of Chrome's bookmark tree (read-only mirror). */
+export interface ChromeBookmarkNode {
+  name: string;
+  /** present on leaves */
+  url?: string;
+  /** present on folders */
+  children?: ChromeBookmarkNode[];
+}
+
+/**
+ * Read-only mirror of the local Chrome profile's bookmarks. Chrome's own
+ * account sync keeps that file current, so following it is effectively
+ * Google-account bookmark sync (other devices → ibe). ibe never writes it.
+ */
+export interface ChromeBookmarksApi {
+  profiles(): Promise<ChromeProfile[]>;
+  /** parse the profile's bookmarks and (re)arm the file watcher on it */
+  get(profileId: string): Promise<ChromeBookmarkNode[]>;
+  /** the watched profile's bookmarks changed on disk */
+  onChange(cb: (tree: ChromeBookmarkNode[]) => void): () => void;
 }
 
 /** One entry of a directory listing (editor file tree, lazily loaded). */
@@ -199,4 +231,5 @@ export interface IbeApi {
   session: SessionApi;
   settings: SettingsApi;
   editor: EditorApi;
+  chromeBookmarks: ChromeBookmarksApi;
 }

@@ -17,7 +17,8 @@ export function useBrowserViews(
   tabs: Tab[],
   activeTabId: string,
   omniboxPaneId: string | null,
-  settingsOpen: boolean
+  /** any DOM overlay (settings modal, Chrome bookmarks menu) is open */
+  overlayOpen: boolean
 ) {
   const known = useRef(new Map<string, string>()); // id -> tabId
   const visible = useRef(new Map<string, boolean>());
@@ -47,18 +48,18 @@ export function useBrowserViews(
 
   // visibility follows the active tab; a pane with its omnibox open is retracted
   // so the suggestions dropdown (DOM) can show over its area, and every view is
-  // retracted while the settings modal (DOM) is open so it isn't hidden behind
-  // the native views.
+  // retracted while a DOM overlay (settings modal, Chrome bookmarks menu) is
+  // open so it isn't hidden behind the native views.
   useLayoutEffect(() => {
     for (const [id, tabId] of known.current) {
       const shouldShow =
-        tabId === activeTabId && id !== omniboxPaneId && !settingsOpen;
+        tabId === activeTabId && id !== omniboxPaneId && !overlayOpen;
       if (visible.current.get(id) !== shouldShow) {
         ibe.setVisible(id, shouldShow);
         visible.current.set(id, shouldShow);
       }
     }
-  }, [tabs, activeTabId, omniboxPaneId, settingsOpen]);
+  }, [tabs, activeTabId, omniboxPaneId, overlayOpen]);
 
   const syncBounds = useCallback(() => {
     const nodes = document.querySelectorAll<HTMLElement>("[data-browser-id]");

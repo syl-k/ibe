@@ -515,6 +515,67 @@ body.resizing {
   color: var(--accent);
 }
 
+/* --- chrome bookmarks menu --- */
+.bookmark.chrome-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.chrome-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+}
+.chrome-menu {
+  position: absolute;
+  top: calc(var(--tabbar-h) + 30px);
+  left: 8px;
+  width: 360px;
+  max-height: calc(100vh - var(--tabbar-h) - 60px);
+  overflow-y: auto;
+  background: var(--pane-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  padding: 6px 0;
+  font-size: 12px;
+}
+.chrome-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding-right: 10px;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+}
+.chrome-menu-row:hover {
+  background: var(--border);
+}
+.chrome-menu-arrow {
+  color: var(--muted);
+  font-size: 9px;
+  width: 10px;
+  flex: 0 0 10px;
+}
+.chrome-menu-row.url .chrome-menu-name {
+  padding-left: 15px;
+}
+.chrome-menu-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chrome-menu-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 10px;
+}
+.chrome-menu-empty {
+  padding: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
 /* --- markdown preview --- */
 .md-preview {
   flex: 1 1 50%;
@@ -716,6 +777,19 @@ body.resizing {
   user-select: text;
 }
 .settings-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.settings-field select {
+  height: 28px;
+  background: var(--term-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0 8px;
+  font-size: 12px;
+}
+.settings-field select:focus {
   outline: none;
   border-color: var(--accent);
 }

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import type { ThemeName } from "../../../shared/ipc";
+import { useEffect, useRef, useState } from "react";
+import type { ChromeProfile, ThemeName } from "../../../shared/ipc";
 import { useStore } from "../store";
 import { useSettings } from "../settings";
 
@@ -18,6 +18,12 @@ export function SettingsModal() {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [profiles, setProfiles] = useState<ChromeProfile[]>([]);
+
+  // Chrome profiles for the bookmarks-mirror dropdown (empty = not installed)
+  useEffect(() => {
+    window.ibe.chromeBookmarks.profiles().then(setProfiles);
+  }, []);
 
   // Escape closes; grab focus so the key lands on the renderer, not a web view.
   useEffect(() => {
@@ -104,6 +110,28 @@ export function SettingsModal() {
             terminals, not existing ones.
           </p>
         </div>
+
+        {profiles.length > 0 && (
+          <div className="settings-field">
+            <label htmlFor="set-chrome-profile">Chrome ブックマーク</label>
+            <select
+              id="set-chrome-profile"
+              value={settings.chromeProfile}
+              onChange={(e) => update({ chromeProfile: e.target.value })}
+            >
+              <option value="">同期しない</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.id})
+                </option>
+              ))}
+            </select>
+            <p className="settings-hint">
+              選択した Chrome プロファイルのブックマークをブックマークバーの
+              「Chrome ▾」に表示します(読み取り専用・Chrome 側の変更に自動追従)。
+            </p>
+          </div>
+        )}
 
         <div className="settings-field">
           <label className="settings-check">

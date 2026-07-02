@@ -4,6 +4,8 @@ import type {
   BookmarksApi,
   Bounds,
   BrowserState,
+  ChromeBookmarkNode,
+  ChromeBookmarksApi,
   EditorApi,
   HistoryApi,
   IbeApi,
@@ -89,6 +91,16 @@ const editor: EditorApi = {
   },
 };
 
+const chromeBookmarks: ChromeBookmarksApi = {
+  profiles: () => ipcRenderer.invoke("chrome:profiles"),
+  get: (profileId) => ipcRenderer.invoke("chrome:get", profileId),
+  onChange: (cb) => {
+    const listener = (_e: unknown, tree: ChromeBookmarkNode[]) => cb(tree);
+    ipcRenderer.on("chrome:bookmarks-change", listener);
+    return () => ipcRenderer.removeListener("chrome:bookmarks-change", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -130,6 +142,7 @@ const api: IbeApi = {
   session,
   settings,
   editor,
+  chromeBookmarks,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);
