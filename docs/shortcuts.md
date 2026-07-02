@@ -45,6 +45,7 @@ web ページ操作中に Cmd+T などが発火しなかった（M4 で顕在化
 | 前のタブ | Cmd+Shift+[ | `prev-tab` |
 | 次のタブ | Cmd+Shift+] | `next-tab` |
 | 設定を開く | Cmd+, | `open-settings` |
+| ファイルを保存（エディタ） | Cmd+S | `save-file` |
 
 編集系（コピー/ペースト等）は標準の `editMenu` ロールで供給（ターミナル・ブラウザ双方で必要）。
 

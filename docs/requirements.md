@@ -181,6 +181,7 @@ MVP 後:
 | M5 | OSS 整備 ✅ **完了** | README / CONTRIBUTING / MIT / CI（typecheck+build）/ electron-builder による dmg 配布 → [docs/m5-oss.md](./m5-oss.md) |
 | M6 | 設定 UI ✅ **完了** | テーマ（Mocha/Latte）・ターミナルフォント・デフォルト shell を変更/永続化/即時反映 → [docs/m6-settings.md](./m6-settings.md) |
 | M7 | ターミナル通知 ✅ **完了** | ベル（AI/コマンド完了・入力待ち）を main の pty で OSC 認識付き検出、非アクティブ時に OS 通知・クリックで該当セッションへ移動 → [docs/m7-notifications.md](./m7-notifications.md) |
+| M8 | エディタペイン ✅ **完了** | フォルダを開いて閲覧・編集（CodeMirror 6）。ツリー・ファイルタブ・⌘S・外部変更検知・許可フォルダ配下限定の FS アクセス → [docs/m8-editor.md](./m8-editor.md) |
 | 以降 | 拡張機能・複数プロファイル・リッチターミナル・履歴ビュー等 | [3.2] の「将来」項目（履歴/ブックマークの基本は M3 で実装済み） |
 
 ---

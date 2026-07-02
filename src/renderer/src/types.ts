@@ -1,4 +1,4 @@
-export type Kind = "browser" | "terminal";
+export type Kind = "browser" | "terminal" | "editor";
 
 export interface LeafNode {
   type: "leaf";
@@ -10,6 +10,12 @@ export interface LeafNode {
   sessions?: string[];
   /** which session is shown (terminal panes only) */
   activeSessionId?: string;
+  /** opened folder, absolute path (editor panes only) */
+  folder?: string;
+  /** open file tabs, absolute paths in open order (editor panes only) */
+  files?: string[];
+  /** which file is shown (editor panes only) */
+  activeFile?: string;
 }
 
 export interface SplitNode {

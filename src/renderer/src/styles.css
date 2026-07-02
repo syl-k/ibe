@@ -421,6 +421,122 @@ body.resizing {
   margin-right: 8px;
 }
 
+/* --- editor pane --- */
+.editor-content {
+  display: flex;
+  overflow: hidden;
+  background: var(--term-bg);
+}
+.editor-empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.editor-missing {
+  color: var(--muted);
+  font-size: 12px;
+}
+.editor-open-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.editor-open-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.editor-tree {
+  flex: 0 0 210px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 4px 0;
+  font-size: 12px;
+}
+.filetree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  cursor: pointer;
+  color: var(--text);
+  white-space: nowrap;
+}
+.filetree-row:hover {
+  background: var(--pane-bg);
+}
+.filetree-row.active {
+  color: var(--accent);
+  background: var(--pane-bg);
+}
+.filetree-arrow {
+  color: var(--muted);
+  font-size: 9px;
+  width: 10px;
+  flex: 0 0 10px;
+}
+.filetree-row.file .filetree-name {
+  padding-left: 14px;
+}
+.filetree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.editor-cm {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.editor-cm .cm-editor {
+  height: 100%;
+}
+.editor-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.editor-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.editor-bar.conflict {
+  color: var(--yellow);
+}
+.editor-bar.error {
+  color: #f38ba8;
+}
+.editor-bar button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.editor-bar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* --- settings modal --- */
 .settings-overlay {
   position: fixed;

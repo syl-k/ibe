@@ -40,7 +40,8 @@ export type ShortcutAction =
   | "next-tab"
   | "focus-address"
   | "reload"
-  | "open-settings";
+  | "open-settings"
+  | "save-file";
 
 export type ThemeName = "mocha" | "latte";
 
@@ -125,6 +126,42 @@ export interface TerminalApi {
   setVisibleSessions(ids: string[]): void;
 }
 
+/** One entry of a directory listing (editor file tree, lazily loaded). */
+export interface DirEntry {
+  name: string;
+  kind: "file" | "dir";
+}
+
+/** Result of reading a file into the editor. */
+export type ReadFileResult =
+  | { ok: true; content: string }
+  | { ok: false; error: string };
+
+/** Result of writing a file from the editor. */
+export type WriteFileResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Editor filesystem surface. All access runs in main and is restricted to
+ * folders the user opened via the OS dialog (allowed roots) — a compromised
+ * renderer can't read or write outside them. Reads are guarded against
+ * binary/huge files.
+ */
+export interface EditorApi {
+  /** OS folder picker; the chosen folder becomes an allowed root. null = cancelled */
+  openFolderDialog(): Promise<string | null>;
+  /** re-register a restored folder as an allowed root; false if it's gone */
+  registerRoot(path: string): Promise<boolean>;
+  /** immediate children of a dir under an allowed root (name-sorted, dirs first) */
+  readDir(path: string): Promise<DirEntry[]>;
+  readFile(path: string): Promise<ReadFileResult>;
+  writeFile(path: string, content: string): Promise<WriteFileResult>;
+  /** watch a file for external changes (refcounted per path) */
+  watchStart(path: string): void;
+  watchStop(path: string): void;
+  /** a watched file changed on disk */
+  onFileChange(cb: (path: string) => void): () => void;
+}
+
 /**
  * Session persistence (userData/session.json). Main is a dumb JSON store; the
  * renderer owns the layout shape and validates on load. Payload is
@@ -161,4 +198,5 @@ export interface IbeApi {
   history: HistoryApi;
   session: SessionApi;
   settings: SettingsApi;
+  editor: EditorApi;
 }

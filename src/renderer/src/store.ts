@@ -94,6 +94,14 @@ interface State {
   /** switch to the tab/pane owning `sessionId` and make it the active session */
   revealSession: (sessionId: string) => void;
 
+  /** editor pane: set the opened folder (resets open file tabs) */
+  setEditorFolder: (paneId: string, folder: string) => void;
+  /** editor pane: open a file tab (or focus it if already open) */
+  openEditorFile: (paneId: string, path: string) => void;
+  /** editor pane: close a file tab; pane stays open even when empty */
+  closeEditorFile: (paneId: string, path: string) => void;
+  setActiveEditorFile: (paneId: string, path: string) => void;
+
   /** replace the layout from a persisted session (validated) */
   hydrate: (raw: unknown) => void;
 }
@@ -147,7 +155,7 @@ function isLayoutNode(n: unknown): n is LayoutNode {
     const l = n as { id?: unknown; kind?: unknown };
     return (
       typeof l.id === "string" &&
-      (l.kind === "browser" || l.kind === "terminal")
+      (l.kind === "browser" || l.kind === "terminal" || l.kind === "editor")
     );
   }
   if (node.type === "split") {
@@ -273,7 +281,14 @@ export const useStore = create<State>((set, get) => ({
       withActiveRoot(s, (root) =>
         // fresh leaf -> clean view/pty lifecycle and correct per-kind fields
         transformLeaf(root, id, (l) =>
-          leaf(l.kind === "browser" ? "terminal" : "browser", l.url)
+          leaf(
+            l.kind === "browser"
+              ? "terminal"
+              : l.kind === "terminal"
+                ? "editor"
+                : "browser",
+            l.url
+          )
         )
       )
     ),
@@ -318,6 +333,54 @@ export const useStore = create<State>((set, get) => ({
     set((s) =>
       withActiveRoot(s, (root) =>
         transformLeaf(root, paneId, (l) => ({ ...l, activeSessionId: sessionId }))
+      )
+    ),
+
+  setEditorFolder: (paneId, folder) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => ({
+          ...l,
+          folder,
+          files: [],
+          activeFile: undefined,
+        }))
+      )
+    ),
+
+  openEditorFile: (paneId, path) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => {
+          const files = l.files ?? [];
+          return {
+            ...l,
+            files: files.includes(path) ? files : [...files, path],
+            activeFile: path,
+          };
+        })
+      )
+    ),
+
+  closeEditorFile: (paneId, path) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => {
+          const files = (l.files ?? []).filter((f) => f !== path);
+          return {
+            ...l,
+            files,
+            activeFile:
+              l.activeFile === path ? files[files.length - 1] : l.activeFile,
+          };
+        })
+      )
+    ),
+
+  setActiveEditorFile: (paneId, path) =>
+    set((s) =>
+      withActiveRoot(s, (root) =>
+        transformLeaf(root, paneId, (l) => ({ ...l, activeFile: path }))
       )
     ),
 

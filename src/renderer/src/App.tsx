@@ -8,6 +8,8 @@ import { TabBar } from "./components/TabBar";
 import { BookmarksBar } from "./components/BookmarksBar";
 import { SplitView } from "./components/SplitView";
 import { SettingsModal } from "./components/SettingsModal";
+import { saveActiveEditorFile } from "./components/EditorPane";
+import { useEditorBuffers } from "./editorBuffers";
 import { useSettings } from "./settings";
 
 const ibe = window.ibe;
@@ -135,6 +137,26 @@ export function App() {
           }
           case "open-settings":
             return st.setSettingsOpen(true);
+          case "save-file":
+            return void saveActiveEditorFile();
+        }
+      }),
+    []
+  );
+
+  // drop buffers of editor panes that left the layout (close pane / close tab)
+  useEffect(
+    () =>
+      useStore.subscribe((s) => {
+        const alive = new Set<string>();
+        for (const t of s.tabs) {
+          for (const l of collectLeaves(t.root)) {
+            if (l.kind === "editor") alive.add(l.id);
+          }
+        }
+        const bufs = useEditorBuffers.getState();
+        for (const paneId of Object.keys(bufs.buffers)) {
+          if (!alive.has(paneId)) bufs.dropPane(paneId);
         }
       }),
     []

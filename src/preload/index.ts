@@ -4,6 +4,7 @@ import type {
   BookmarksApi,
   Bounds,
   BrowserState,
+  EditorApi,
   HistoryApi,
   IbeApi,
   OpenNewRequest,
@@ -73,6 +74,21 @@ const settings: SettingsApi = {
   },
 };
 
+const editor: EditorApi = {
+  openFolderDialog: () => ipcRenderer.invoke("editor:openFolderDialog"),
+  registerRoot: (path) => ipcRenderer.invoke("editor:registerRoot", path),
+  readDir: (path) => ipcRenderer.invoke("editor:readDir", path),
+  readFile: (path) => ipcRenderer.invoke("editor:readFile", path),
+  writeFile: (path, content) => ipcRenderer.invoke("editor:writeFile", path, content),
+  watchStart: (path) => ipcRenderer.send("editor:watchStart", path),
+  watchStop: (path) => ipcRenderer.send("editor:watchStop", path),
+  onFileChange: (cb) => {
+    const listener = (_e: unknown, path: string) => cb(path);
+    ipcRenderer.on("editor:file-changed", listener);
+    return () => ipcRenderer.removeListener("editor:file-changed", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
@@ -113,6 +129,7 @@ const api: IbeApi = {
   history,
   session,
   settings,
+  editor,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);

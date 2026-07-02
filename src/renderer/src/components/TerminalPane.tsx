@@ -51,7 +51,7 @@ export function TerminalPane({ node }: { node: LeafNode }) {
           </button>
         </div>
         <span className="spacer" />
-        <PaneActions id={node.id} toggleLabel="B" toggleTitle="ブラウザに切替" />
+        <PaneActions id={node.id} toggleLabel="E" toggleTitle="エディタに切替" />
       </div>
       {active && <TerminalView key={active} sessionId={active} />}
     </>

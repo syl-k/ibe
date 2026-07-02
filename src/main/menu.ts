@@ -58,6 +58,7 @@ export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
       { type: "separator" },
       { label: "Focus Address Bar", accelerator: "CmdOrCtrl+L", click: focusThenSend("focus-address") },
       { label: "Reload Pane", accelerator: "CmdOrCtrl+R", click: send("reload") },
+      { label: "Save File", accelerator: "CmdOrCtrl+S", click: send("save-file") },
       { type: "separator" },
       { label: "Previous Tab", accelerator: "CmdOrCtrl+Shift+[", click: send("prev-tab") },
       { label: "Next Tab", accelerator: "CmdOrCtrl+Shift+]", click: send("next-tab") },
