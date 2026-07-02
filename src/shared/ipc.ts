@@ -23,6 +23,8 @@ export interface OpenNewRequest {
   /** the browser pane id the request originated from */
   fromId: string;
   url: string;
+  /** where to open: split a new pane (default) or a new workspace tab */
+  target?: "pane" | "tab";
 }
 
 /**

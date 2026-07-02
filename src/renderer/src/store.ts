@@ -93,6 +93,8 @@ interface State {
   applyBrowserState: (s: BrowserState) => void;
   /** open `url` in a new browser pane split off from `fromId` */
   openInNewPane: (fromId: string, url: string) => void;
+  /** open `url` as the sole browser pane of a new workspace tab */
+  openInNewTab: (url: string) => void;
 
   addSession: (paneId: string) => void;
   closeSession: (paneId: string, sessionId: string) => void;
@@ -493,6 +495,16 @@ export const useStore = create<State>((set, get) => ({
           : t
       ),
     })),
+
+  openInNewTab: (url) =>
+    set((s) => {
+      const tab: Tab = {
+        id: makeId("tab"),
+        title: `Workspace ${s.tabs.length + 1}`,
+        root: leaf("browser", url),
+      };
+      return { tabs: [...s.tabs, tab], activeTabId: tab.id };
+    }),
 
   openInNewPane: (fromId, url) =>
     set((s) => ({

@@ -15,6 +15,7 @@ import { registerSession } from "./session";
 import { registerSettings } from "./settings";
 import { registerEditor } from "./editor";
 import { registerChromeBookmarks } from "./chromeBookmarks";
+import { attachBrowserContextMenu } from "./contextMenu";
 import { registerWebPermissions } from "./permissions";
 import { buildAppMenu } from "./menu";
 
@@ -110,6 +111,7 @@ ipcMain.on("browser:create", (_e, id: string, url: string) => {
     mainWindow?.webContents.send("browser:open-new", { fromId: id, url: target });
     return { action: "deny" };
   });
+  attachBrowserContextMenu(wc, id, () => mainWindow?.webContents ?? null);
 
   wc.loadURL(url).catch((err) =>
     console.error(`[browser:create] ${url}:`, err.message)

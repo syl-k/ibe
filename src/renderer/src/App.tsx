@@ -56,7 +56,12 @@ export function App() {
 
   // links that want a new window open in a new pane (in-app, not the OS browser)
   useEffect(
-    () => ibe.onOpenNew((r) => useStore.getState().openInNewPane(r.fromId, r.url)),
+    () =>
+      ibe.onOpenNew((r) => {
+        const st = useStore.getState();
+        if (r.target === "tab") st.openInNewTab(r.url);
+        else st.openInNewPane(r.fromId, r.url);
+      }),
     []
   );
 
