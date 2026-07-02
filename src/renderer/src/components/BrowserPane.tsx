@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import type { HistoryEntry } from "../../../shared/ipc";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LeafNode } from "../types";
 import { useStore } from "../store";
+import { flattenChromeTree } from "../chromeFlat";
 import { PaneActions } from "./PaneActions";
 
 const ibe = window.ibe;
@@ -14,13 +14,26 @@ function normalizeUrl(input: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(v)}`;
 }
 
+/** An omnibox suggestion: history hit or bookmark (ibe ★ / Chrome mirror). */
+interface Suggestion {
+  url: string;
+  title: string;
+  badge?: string;
+}
+
+const MAX_SUGGESTIONS = 8;
+const MAX_BOOKMARK_SUGGESTIONS = 3;
+
 export function BrowserPane({ node }: { node: LeafNode }) {
   const setUrl = useStore((s) => s.setUrl);
   const setOmnibox = useStore((s) => s.setOmnibox);
   const view = useStore((s) => s.viewState[node.id]);
   const bookmarked = useStore((s) => s.bookmarks.some((b) => b.url === node.url));
+  const bookmarks = useStore((s) => s.bookmarks);
+  const chromeTree = useStore((s) => s.chromeBookmarks);
+  const chromeFlat = useMemo(() => flattenChromeTree(chromeTree), [chromeTree]);
   const [draft, setDraft] = useState(node.url);
-  const [suggestions, setSuggestions] = useState<HistoryEntry[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selected, setSelected] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,9 +64,32 @@ export function BrowserPane({ node }: { node: LeafNode }) {
     setSelected(-1);
     const q = value.trim();
     if (!q) return closeSuggestions();
-    const hits = await ibe.history.search(q, 7);
+
+    // bookmark matches lead (capped), history fills the rest, deduped by url
+    const lq = q.toLowerCase();
+    const hit = (...fields: string[]) =>
+      fields.some((f) => f.toLowerCase().includes(lq));
+    const fromBookmarks: Suggestion[] = [
+      ...bookmarks
+        .filter((b) => hit(b.title, b.url))
+        .map((b) => ({ url: b.url, title: b.title || b.url, badge: "★" })),
+      ...chromeFlat
+        .filter((c) => hit(c.title, c.url))
+        .map((c) => ({ url: c.url, title: c.title, badge: "Chrome" })),
+    ].slice(0, MAX_BOOKMARK_SUGGESTIONS);
+
+    const hits = await ibe.history.search(q, MAX_SUGGESTIONS);
     // only apply if the field still has this value (avoid races)
-    if (inputRef.current?.value.trim() === q) setSuggestions(hits);
+    if (inputRef.current?.value.trim() !== q) return;
+
+    const seen = new Set(fromBookmarks.map((s) => s.url));
+    const merged = [
+      ...fromBookmarks,
+      ...hits
+        .filter((h) => !seen.has(h.url))
+        .map((h) => ({ url: h.url, title: h.title })),
+    ].slice(0, MAX_SUGGESTIONS);
+    setSuggestions(merged);
   };
 
   const go = (url: string) => {
@@ -144,11 +180,12 @@ export function BrowserPane({ node }: { node: LeafNode }) {
         <div className="suggestions" onMouseDown={(e) => e.preventDefault()}>
           {suggestions.map((h, i) => (
             <div
-              key={h.url}
+              key={`${h.url}-${i}`}
               className={`suggestion${i === selected ? " selected" : ""}`}
               onMouseEnter={() => setSelected(i)}
               onClick={() => go(h.url)}
             >
+              {h.badge && <span className="suggestion-badge">{h.badge}</span>}
               <span className="suggestion-title">{h.title || h.url}</span>
               <span className="suggestion-url">{h.url}</span>
             </div>

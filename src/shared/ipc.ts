@@ -42,8 +42,10 @@ export type ShortcutAction =
   | "next-tab"
   | "focus-address"
   | "reload"
+  | "hard-reload"
   | "open-settings"
-  | "save-file";
+  | "save-file"
+  | "open-library";
 
 export type ThemeName = "mocha" | "latte";
 
@@ -215,6 +217,8 @@ export interface IbeApi {
   goBack(id: string): void;
   goForward(id: string): void;
   reload(id: string): void;
+  /** reload bypassing the HTTP cache (super reload) */
+  hardReload(id: string): void;
   stop(id: string): void;
   destroy(id: string): void;
   onState(cb: (state: BrowserState) => void): () => void;

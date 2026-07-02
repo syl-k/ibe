@@ -147,6 +147,9 @@ ipcMain.on("browser:goForward", (_e, id: string) =>
 ipcMain.on("browser:reload", (_e, id: string) =>
   views.get(id)?.webContents.reload()
 );
+ipcMain.on("browser:hardReload", (_e, id: string) =>
+  views.get(id)?.webContents.reloadIgnoringCache()
+);
 ipcMain.on("browser:stop", (_e, id: string) =>
   views.get(id)?.webContents.stop()
 );

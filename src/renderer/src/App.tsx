@@ -8,6 +8,7 @@ import { TabBar } from "./components/TabBar";
 import { BookmarksBar } from "./components/BookmarksBar";
 import { SplitView } from "./components/SplitView";
 import { SettingsModal } from "./components/SettingsModal";
+import { LibraryOverlay } from "./components/LibraryOverlay";
 import { saveActiveEditorFile } from "./components/EditorPane";
 import { useEditorBuffers } from "./editorBuffers";
 import { useSettings } from "./settings";
@@ -20,6 +21,7 @@ export function App() {
   const omniboxPaneId = useStore((s) => s.omniboxPaneId);
   const settingsOpen = useStore((s) => s.settingsOpen);
   const chromeMenuOpen = useStore((s) => s.chromeMenuOpen);
+  const libraryOpen = useStore((s) => s.libraryOpen);
   const activeTab = tabs.find((t) => t.id === activeTabId)!;
   const workspaceRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +29,7 @@ export function App() {
     tabs,
     activeTabId,
     omniboxPaneId,
-    settingsOpen || chromeMenuOpen
+    settingsOpen || chromeMenuOpen || libraryOpen
   );
   useTerminals(tabs);
 
@@ -162,6 +164,9 @@ export function App() {
           case "reload":
             if (target.kind === "browser") ibe.reload(target.id);
             return;
+          case "hard-reload":
+            if (target.kind === "browser") ibe.hardReload(target.id);
+            return;
           case "focus-address": {
             if (target.kind !== "browser") return;
             const input = document.querySelector<HTMLInputElement>(
@@ -175,6 +180,8 @@ export function App() {
             return st.setSettingsOpen(true);
           case "save-file":
             return void saveActiveEditorFile();
+          case "open-library":
+            return st.setLibraryOpen(true);
         }
       }),
     []
@@ -215,6 +222,7 @@ export function App() {
         {tabs.length} tab{tabs.length > 1 ? "s" : ""}
       </div>
       {settingsOpen && <SettingsModal />}
+      {libraryOpen && <LibraryOverlay />}
     </div>
   );
 }

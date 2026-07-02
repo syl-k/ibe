@@ -72,6 +72,8 @@ interface State {
   chromeBookmarks: ChromeBookmarkNode[];
   /** Chrome bookmarks dropdown open; native views retracted while true */
   chromeMenuOpen: boolean;
+  /** library overlay (history/bookmarks search) open; views retracted */
+  libraryOpen: boolean;
 
   setActiveTab: (id: string) => void;
   setBookmarks: (b: Bookmark[]) => void;
@@ -79,6 +81,7 @@ interface State {
   setSettingsOpen: (open: boolean) => void;
   setChromeBookmarks: (tree: ChromeBookmarkNode[]) => void;
   setChromeMenuOpen: (open: boolean) => void;
+  setLibraryOpen: (open: boolean) => void;
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
@@ -238,6 +241,7 @@ export const useStore = create<State>((set, get) => ({
   settingsOpen: false,
   chromeBookmarks: [],
   chromeMenuOpen: false,
+  libraryOpen: false,
 
   setActiveTab: (id) => set({ activeTabId: id }),
   setBookmarks: (b) => set({ bookmarks: b }),
@@ -245,6 +249,7 @@ export const useStore = create<State>((set, get) => ({
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setChromeBookmarks: (tree) => set({ chromeBookmarks: tree }),
   setChromeMenuOpen: (open) => set({ chromeMenuOpen: open }),
+  setLibraryOpen: (open) => set({ libraryOpen: open }),
 
   addTab: () => {
     const tab = blankTab(`Workspace ${get().tabs.length + 1}`);

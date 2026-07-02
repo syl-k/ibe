@@ -109,6 +109,7 @@ const api: IbeApi = {
   goBack: (id) => ipcRenderer.send("browser:goBack", id),
   goForward: (id) => ipcRenderer.send("browser:goForward", id),
   reload: (id) => ipcRenderer.send("browser:reload", id),
+  hardReload: (id) => ipcRenderer.send("browser:hardReload", id),
   stop: (id) => ipcRenderer.send("browser:stop", id),
   destroy: (id) => ipcRenderer.send("browser:destroy", id),
   onState: (cb) => {

@@ -1,9 +1,6 @@
 import { useStore } from "../store";
-import { collectLeaves, findLeaf } from "../tree";
-import type { LeafNode } from "../types";
+import { openUrlInBrowserPane } from "../openUrl";
 import { ChromeBookmarksMenu } from "./ChromeBookmarksMenu";
-
-const ibe = window.ibe;
 
 /**
  * Bookmarks bar shown under the tab bar (chrome area, so it never collides with
@@ -20,19 +17,7 @@ export function BookmarksBar() {
 
   if (bookmarks.length === 0 && chromeTree.length === 0) return null;
 
-  const open = (url: string) => {
-    const st = useStore.getState();
-    const tab = st.tabs.find((t) => t.id === st.activeTabId)!;
-    const focused =
-      st.focusedPaneId && findLeaf(tab.root, st.focusedPaneId);
-    const target: LeafNode | null =
-      focused && focused.kind === "browser"
-        ? focused
-        : collectLeaves(tab.root).find((l) => l.kind === "browser") ?? null;
-    if (!target) return; // no browser pane to navigate; ignore for now
-    ibe.navigate(target.id, url);
-    st.setUrl(target.id, url);
-  };
+  const open = openUrlInBrowserPane;
 
   return (
     <div className="bookmarks-bar">
