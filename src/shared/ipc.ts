@@ -58,6 +58,9 @@ export interface Settings {
   terminalFontSize: number;
   /** custom shell path; empty = the user's login shell ($SHELL) */
   shell: string;
+  /** show an OS notification when a terminal rings the bell (AI turn done /
+   * input awaited) while the window is not focused */
+  notifyOnBell: boolean;
 }
 
 /** Persisted user preferences, owned by the main process. */
@@ -118,6 +121,8 @@ export interface TerminalApi {
   destroy(id: string): void;
   onData(id: string, cb: (data: string) => void): () => void;
   onExit(id: string, cb: (exitCode: number) => void): () => void;
+  /** report the sessions currently on-screen so bells for them aren't notified */
+  setVisibleSessions(ids: string[]): void;
 }
 
 /**
@@ -148,6 +153,8 @@ export interface IbeApi {
   onShortcut(cb: (action: ShortcutAction) => void): () => void;
   /** a browser pane's native view gained focus → sync focusedPaneId */
   onFocusPane(cb: (paneId: string) => void): () => void;
+  /** a terminal notification was clicked → reveal that session's pane/tab */
+  onNotifyActivate(cb: (sessionId: string) => void): () => void;
 
   term: TerminalApi;
   bookmarks: BookmarksApi;

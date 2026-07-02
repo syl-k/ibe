@@ -113,7 +113,7 @@ export function BrowserPane({ node }: { node: LeafNode }) {
         )}
         <span className="favicon" title={view?.title || ""}>
           {view?.favicon ? (
-            <img src={view.favicon} alt="" width={14} height={14} />
+            <img src={view.favicon} alt="" width={18} height={18} />
           ) : (
             <span className="favicon-dot" />
           )}

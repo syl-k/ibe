@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   terminalFontFamily: '"SF Mono", Menlo, monospace',
   terminalFontSize: 12,
   shell: "",
+  notifyOnBell: true,
 };
 
 let current: Settings = DEFAULT_SETTINGS;
@@ -34,6 +35,10 @@ function coerce(raw: unknown): Settings {
         ? Math.round(size)
         : DEFAULT_SETTINGS.terminalFontSize,
     shell: typeof r.shell === "string" ? r.shell : "",
+    notifyOnBell:
+      typeof r.notifyOnBell === "boolean"
+        ? r.notifyOnBell
+        : DEFAULT_SETTINGS.notifyOnBell,
   };
 }
 

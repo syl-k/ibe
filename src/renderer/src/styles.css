@@ -12,7 +12,7 @@
   --yellow: #f9e2af;
   --term-bg: #11111b;
   --tabbar-h: 38px;
-  --toolbar-h: 34px;
+  --toolbar-h: 50px;
 }
 
 :root[data-theme="latte"] {
@@ -223,12 +223,12 @@ body.resizing {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 5px;
-  height: 22px;
-  min-width: 24px;
-  padding: 0 6px;
+  border-radius: 7px;
+  height: 34px;
+  min-width: 36px;
+  padding: 0 10px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 18px;
   line-height: 1;
 }
 .toolbar button:hover {
@@ -243,9 +243,9 @@ body.resizing {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
 }
 .toolbar .favicon img {
   border-radius: 2px;
@@ -258,13 +258,13 @@ body.resizing {
 }
 .toolbar .addressbar {
   flex: 1 1 auto;
-  height: 28px;
+  height: 36px;
   background: var(--term-bg);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   color: var(--text);
-  padding: 0 10px;
-  font-size: 13px;
+  padding: 0 12px;
+  font-size: 15px;
   user-select: text;
   min-width: 50px;
 }
@@ -493,6 +493,19 @@ body.resizing {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.4;
+}
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.settings-check input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
 }
 .segmented {
   display: flex;

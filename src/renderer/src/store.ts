@@ -27,8 +27,8 @@ function defaultTab(title: string): Tab {
         dir: "col",
         ratio: 0.5,
         children: [
-          leaf("browser", "https://example.com"),
-          leaf("browser", "https://www.wikipedia.org"),
+          leaf("browser", "https://www.google.com"),
+          leaf("browser", "https://www.google.com"),
         ],
       },
       {
@@ -44,7 +44,7 @@ function defaultTab(title: string): Tab {
 }
 
 function blankTab(title: string): Tab {
-  return { id: makeId("tab"), title, root: leaf("browser", "https://example.com") };
+  return { id: makeId("tab"), title, root: leaf("browser", "https://www.google.com") };
 }
 
 /** Live browser chrome state for one pane (not part of the layout tree). */
@@ -91,6 +91,8 @@ interface State {
   addSession: (paneId: string) => void;
   closeSession: (paneId: string, sessionId: string) => void;
   setActiveSession: (paneId: string, sessionId: string) => void;
+  /** switch to the tab/pane owning `sessionId` and make it the active session */
+  revealSession: (sessionId: string) => void;
 
   /** replace the layout from a persisted session (validated) */
   hydrate: (raw: unknown) => void;
@@ -159,6 +161,32 @@ function isLayoutNode(n: unknown): n is LayoutNode {
     );
   }
   return false;
+}
+
+/** Sessions shown on-screen for a tree: each terminal pane's active session. */
+export function visibleTerminalSessions(node: LayoutNode): string[] {
+  if (node.type === "leaf") {
+    if (node.kind !== "terminal") return [];
+    const sid = node.activeSessionId ?? node.sessions?.[0];
+    return sid ? [sid] : [];
+  }
+  return [
+    ...visibleTerminalSessions(node.children[0]),
+    ...visibleTerminalSessions(node.children[1]),
+  ];
+}
+
+/** Pane id of the terminal leaf that owns `sessionId`, across a whole tree. */
+function findSessionPane(node: LayoutNode, sessionId: string): string | null {
+  if (node.type === "leaf") {
+    return node.kind === "terminal" && node.sessions?.includes(sessionId)
+      ? node.id
+      : null;
+  }
+  return (
+    findSessionPane(node.children[0], sessionId) ??
+    findSessionPane(node.children[1], sessionId)
+  );
 }
 
 function collectIds(node: LayoutNode, out: string[]): void {
@@ -292,6 +320,31 @@ export const useStore = create<State>((set, get) => ({
         transformLeaf(root, paneId, (l) => ({ ...l, activeSessionId: sessionId }))
       )
     ),
+
+  revealSession: (sessionId) =>
+    set((s) => {
+      for (const t of s.tabs) {
+        const paneId = findSessionPane(t.root, sessionId);
+        if (!paneId) continue;
+        // switch to that tab, focus the pane, and show the right session
+        return {
+          activeTabId: t.id,
+          focusedPaneId: paneId,
+          tabs: s.tabs.map((tab) =>
+            tab.id === t.id
+              ? {
+                  ...tab,
+                  root: transformLeaf(tab.root, paneId, (l) => ({
+                    ...l,
+                    activeSessionId: sessionId,
+                  })),
+                }
+              : tab
+          ),
+        };
+      }
+      return s; // session no longer exists (pane closed) — do nothing
+    }),
 
   hydrate: (raw) => {
     const data = raw as Partial<PersistedSession> | null;

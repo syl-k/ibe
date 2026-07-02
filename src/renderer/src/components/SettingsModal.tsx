@@ -104,6 +104,22 @@ export function SettingsModal() {
             terminals, not existing ones.
           </p>
         </div>
+
+        <div className="settings-field">
+          <label className="settings-check">
+            <input
+              type="checkbox"
+              checked={settings.notifyOnBell}
+              onChange={(e) => update({ notifyOnBell: e.target.checked })}
+            />
+            <span>ターミナル通知</span>
+          </label>
+          <p className="settings-hint">
+            Claude などがターミナルでベルを鳴らしたとき（処理完了・入力待ち）、
+            ウィンドウが非アクティブなら OS 通知を表示します。通知をクリックすると
+            そのセッションのタブ／ペインに移動します。
+          </p>
+        </div>
       </div>
     </div>
   );

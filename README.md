@@ -20,6 +20,9 @@
 - 💾 **状態復元** — レイアウト・タブ・URL を再起動後に復元（ターミナルは枠のみ・shell 再起動）。
 - ⚙️ **設定** — テーマ（ダーク Mocha / ライト Latte）・ターミナルフォント・デフォルト shell
   を変更・永続化・即時反映（⌘,）（[docs/m6-settings.md](docs/m6-settings.md)）。
+- 🔔 **ターミナル通知** — Claude 等がターミナルでベルを鳴らす（処理完了・入力待ち）と、
+  見ていないセッションなら OS 通知。クリックでそのセッションへ移動。ブラウザペインの
+  Google カレンダー等の Web 通知も許可オリジンのみ橋渡し（[docs/m7-notifications.md](docs/m7-notifications.md)）。
 - 🎹 **アプリメニューのショートカット** — web ペインにフォーカスがあっても効く（[docs/shortcuts.md](docs/shortcuts.md)）。
 
 ## 動作環境
@@ -80,6 +83,8 @@ src/
 [M2 ターミナル](docs/m2-terminal.md) ·
 [M3 ブラウザ](docs/m3-browser.md) ·
 [M4 状態復元](docs/m4-persistence.md) ·
+[M6 設定](docs/m6-settings.md) ·
+[M7 通知](docs/m7-notifications.md) ·
 [ショートカット](docs/shortcuts.md)
 
 ## ロードマップ
@@ -91,6 +96,8 @@ src/
 - [x] M4 状態復元
 - [x] キーボードショートカット（アプリメニュー化）
 - [x] M5 OSS 整備（README・CI・electron-builder 配布）
+- [x] M6 設定 UI（テーマ・フォント・デフォルト shell）
+- [x] M7 ターミナル通知（cmux 風・ベル検出）
 - [ ] 以降: 署名/notarization・アプリアイコン・Chrome 拡張・複数プロファイル・リッチターミナル 等
 
 ## コントリビュート

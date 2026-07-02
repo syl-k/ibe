@@ -39,6 +39,7 @@ const term: TerminalApi = {
     ipcRenderer.on("term:exit", listener);
     return () => ipcRenderer.removeListener("term:exit", listener);
   },
+  setVisibleSessions: (ids) => ipcRenderer.send("term:visible", ids),
 };
 
 const bookmarks: BookmarksApi = {
@@ -101,6 +102,11 @@ const api: IbeApi = {
     const listener = (_e: unknown, paneId: string) => cb(paneId);
     ipcRenderer.on("browser:focus-pane", listener);
     return () => ipcRenderer.removeListener("browser:focus-pane", listener);
+  },
+  onNotifyActivate: (cb) => {
+    const listener = (_e: unknown, sessionId: string) => cb(sessionId);
+    ipcRenderer.on("notify:activate", listener);
+    return () => ipcRenderer.removeListener("notify:activate", listener);
   },
   term,
   bookmarks,

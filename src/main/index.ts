@@ -13,6 +13,7 @@ import { registerBookmarks } from "./bookmarks";
 import { registerHistory, recordVisit } from "./history";
 import { registerSession } from "./session";
 import { registerSettings } from "./settings";
+import { registerWebPermissions } from "./permissions";
 import { buildAppMenu } from "./menu";
 
 /**
@@ -162,6 +163,7 @@ registerHistory();
 registerSession();
 
 app.whenReady().then(() => {
+  registerWebPermissions(); // allow-listed origins may show desktop notifications
   Menu.setApplicationMenu(buildAppMenu(() => mainWindow?.webContents ?? null));
   createWindow();
   app.on("activate", () => {

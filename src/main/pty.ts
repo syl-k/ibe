@@ -2,6 +2,13 @@ import { ipcMain, type WebContents } from "electron";
 import { homedir } from "os";
 import * as pty from "node-pty";
 import { getSettings } from "./settings";
+import {
+  createBellDetector,
+  notifyTerminalActivity,
+  forgetTerminalNotify,
+  setVisibleSessions,
+  type BellSignal,
+} from "./termNotify";
 
 /**
  * Owns one login-shell pty per terminal pane, keyed by the renderer's pane id.
@@ -18,6 +25,8 @@ interface Session {
   proc: pty.IPty;
   buffer: string;
   attached: boolean;
+  /** OSC-aware bell scanner for attention notifications */
+  detect: (chunk: string) => BellSignal;
 }
 
 const sessions = new Map<string, Session>();
@@ -43,7 +52,12 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
       env: { ...process.env, TERM: "xterm-256color" } as Record<string, string>,
     });
 
-    const session: Session = { proc, buffer: "", attached: false };
+    const session: Session = {
+      proc,
+      buffer: "",
+      attached: false,
+      detect: createBellDetector(),
+    };
     sessions.set(id, session);
 
     proc.onData((data) => {
@@ -52,6 +66,9 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
         session.buffer = session.buffer.slice(-SCROLLBACK_LIMIT);
       }
       const wc = getWebContents();
+      // attention notification (works whether or not a view is attached)
+      const { bell, osc9 } = session.detect(data);
+      if ((bell || osc9) && wc) notifyTerminalActivity(id, osc9, wc);
       if (session.attached && wc) send(wc, "term:data", { id, data });
     });
 
@@ -59,6 +76,7 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
       const wc = getWebContents();
       if (wc) send(wc, "term:exit", { id, exitCode });
       sessions.delete(id);
+      forgetTerminalNotify(id);
     });
   });
 
@@ -89,11 +107,18 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
     }
   });
 
+  // renderer reports which terminal sessions are on-screen (active tab, each
+  // pane's shown session) so we don't notify for what the user is looking at
+  ipcMain.on("term:visible", (_e, ids: string[]) => {
+    setVisibleSessions(Array.isArray(ids) ? ids : []);
+  });
+
   ipcMain.on("term:destroy", (_e, id: string) => {
     const session = sessions.get(id);
     if (!session) return;
     session.proc.kill();
     sessions.delete(id);
+    forgetTerminalNotify(id);
   });
 }
 

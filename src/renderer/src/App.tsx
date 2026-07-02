@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { useStore } from "./store";
+import { useStore, visibleTerminalSessions } from "./store";
 import { collectLeaves } from "./tree";
 import { useBrowserViews } from "./hooks/useBrowserViews";
 import { useTerminals } from "./hooks/useTerminals";
@@ -66,6 +66,29 @@ export function App() {
 
   // a browser view gaining focus makes it the focused pane
   useEffect(() => ibe.onFocusPane((id) => useStore.getState().focusPane(id)), []);
+
+  // clicking a terminal notification reveals that session's tab/pane
+  useEffect(
+    () => ibe.onNotifyActivate((sid) => useStore.getState().revealSession(sid)),
+    []
+  );
+
+  // tell main which terminal sessions are on-screen (active tab, each terminal
+  // pane's shown session) so it suppresses notifications only for those.
+  useEffect(() => {
+    let last = "";
+    const push = (s: ReturnType<typeof useStore.getState>) => {
+      const tab = s.tabs.find((t) => t.id === s.activeTabId);
+      const ids = tab ? visibleTerminalSessions(tab.root) : [];
+      const key = ids.join(",");
+      if (key !== last) {
+        last = key;
+        ibe.term.setVisibleSessions(ids);
+      }
+    };
+    push(useStore.getState());
+    return useStore.subscribe(push);
+  }, []);
 
   // shortcuts arrive from the native app menu (they fire even when a web pane
   // holds keyboard focus). Resolve pane-relative actions against the store.

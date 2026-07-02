@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
   terminalFontFamily: '"SF Mono", Menlo, monospace',
   terminalFontSize: 12,
   shell: "",
+  notifyOnBell: true,
 };
 
 /** Apply the theme by tagging the document root; CSS variables key off it. */
