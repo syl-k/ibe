@@ -23,7 +23,7 @@ const THEMES: Record<ThemeName, ITheme> = {
     white: "#bac2de",
   },
   latte: {
-    background: "#eff1f5",
+    background: "#fafafa",
     foreground: "#4c4f69",
     cursor: "#dc8a78",
     selectionBackground: "#acb0be",

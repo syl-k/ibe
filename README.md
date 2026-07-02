@@ -24,7 +24,7 @@
   見ていないセッションなら OS 通知。クリックでそのセッションへ移動。ブラウザペインの
   Google カレンダー等の Web 通知も許可オリジンのみ橋渡し（[docs/m7-notifications.md](docs/m7-notifications.md)）。
 - 📝 **エディタ** — フォルダを開いてファイルを閲覧・編集（CodeMirror 6）。ファイルツリー・
-  ペイン内ファイルタブ・⌘S 保存・外部変更検知（[docs/m8-editor.md](docs/m8-editor.md)）。
+  ペイン内ファイルタブ・⌘S 保存・外部変更検知・Markdown プレビュー（[docs/m8-editor.md](docs/m8-editor.md)）。
 - 🎹 **アプリメニューのショートカット** — web ペインにフォーカスがあっても効く（[docs/shortcuts.md](docs/shortcuts.md)）。
 
 ## 動作環境

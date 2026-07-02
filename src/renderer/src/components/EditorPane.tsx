@@ -6,11 +6,16 @@ import { useEditorBuffers, isDirty } from "../editorBuffers";
 import { PaneActions } from "./PaneActions";
 import { FileTree } from "./FileTree";
 import { CodeMirrorView } from "./CodeMirrorView";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 const ibe = window.ibe;
 
 function basename(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1) || path;
+}
+
+function isMarkdown(path: string): boolean {
+  return /\.(md|markdown)$/i.test(path);
 }
 
 /**
@@ -53,6 +58,31 @@ export function EditorPane({ node }: { node: LeafNode }) {
   const [loadErrors, setLoadErrors] = useState<Record<string, string>>({});
   // bumping a file's generation remounts its CodeMirror view with fresh text
   const [gen, setGen] = useState<Record<string, number>>({});
+  // markdown preview toggle + editor/preview split ratio (per pane, volatile)
+  const [previewOn, setPreviewOn] = useState(false);
+  const [previewRatio, setPreviewRatio] = useState(0.5);
+  const splitRef = useRef<HTMLDivElement>(null);
+
+  // drag the divider between editor and preview (same pattern as SplitView)
+  const onPreviewResizerDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = splitRef.current;
+    if (!container) return;
+    const onMove = (ev: MouseEvent) => {
+      const rect = container.getBoundingClientRect();
+      const r = (ev.clientX - rect.left) / rect.width;
+      setPreviewRatio(Math.max(0.15, Math.min(0.85, r)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.classList.remove("resizing");
+    };
+    document.body.classList.add("resizing");
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   const files = node.files ?? [];
   const active = node.activeFile;
@@ -206,6 +236,15 @@ export function EditorPane({ node }: { node: LeafNode }) {
             );
           })}
         </div>
+        {active && isMarkdown(active) && (
+          <button
+            className={previewOn ? "preview-on" : ""}
+            title={previewOn ? "プレビューを閉じる" : "Markdown プレビュー"}
+            onClick={stop(() => setPreviewOn((p) => !p))}
+          >
+            ◫
+          </button>
+        )}
         {node.folder && (
           <button title="別のフォルダを開く" onClick={stop(() => void openFolder())}>
             📁
@@ -256,14 +295,40 @@ export function EditorPane({ node }: { node: LeafNode }) {
               {active && loadErrors[active] ? (
                 <div className="editor-placeholder">{loadErrors[active]}</div>
               ) : active && activeBuf ? (
-                <CodeMirrorView
-                  key={`${active}:${gen[active] ?? 0}`}
-                  path={active}
-                  initialText={activeBuf.text}
-                  onChange={(text) =>
-                    useEditorBuffers.getState().edit(paneId, active, text)
-                  }
-                />
+                <div className="editor-split" ref={splitRef}>
+                  <div
+                    className="editor-split-child"
+                    style={
+                      previewOn && isMarkdown(active)
+                        ? { flex: `${previewRatio} 1 0` }
+                        : undefined
+                    }
+                  >
+                    <CodeMirrorView
+                      key={`${active}:${gen[active] ?? 0}`}
+                      path={active}
+                      initialText={activeBuf.text}
+                      onChange={(text) =>
+                        useEditorBuffers.getState().edit(paneId, active, text)
+                      }
+                    />
+                  </div>
+                  {previewOn && isMarkdown(active) && (
+                    <>
+                      <div
+                        className="resizer row"
+                        onMouseDown={onPreviewResizerDown}
+                        role="separator"
+                        aria-orientation="vertical"
+                      />
+                      <MarkdownPreview
+                        paneId={paneId}
+                        text={activeBuf.text}
+                        style={{ flex: `${1 - previewRatio} 1 0` }}
+                      />
+                    </>
+                  )}
+                </div>
               ) : (
                 <div className="editor-placeholder">
                   {active ? "読み込み中…" : "ツリーからファイルを選択"}

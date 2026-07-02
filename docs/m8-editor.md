@@ -19,6 +19,7 @@
 | 保存 | ⌘S(アプリメニュー Save File)。保存失敗は赤帯表示・バッファ保持 |
 | 外部変更 | fs.watch。クリーンなら黙って再読込(自own保存は内容比較でスキップ)、dirty なら「再読込/このまま」帯 |
 | 永続化 | folder / files / activeFile を復元(内容はディスクから再読込)。消えたファイルはタブから除外 |
+| Markdown プレビュー | `.md` を開くと「◫」トグル。エディタ右に並列表示・入力に 150ms デバウンスで追従 |
 
 ## 2. 設計の要点
 
@@ -35,6 +36,12 @@
   ディスク内容とバッファが一致したらスキップ(カーソル位置を失う無駄な再マウントを防ぐ)。
 - **watch はマウント中のみ**: 背景タブでは watcher が止まるので、再マウント時に全開ファイルを
   ディスクと突き合わせて差分を反映(reconcile)。
+- **Markdown プレビューのサニタイズ**([MarkdownPreview.tsx](../src/renderer/src/components/MarkdownPreview.tsx)):
+  プレビューは「信頼できない入力を renderer の DOM に注入する」操作で、renderer は
+  `window.ibe`(ファイル書換・pty 入力)を持つ。marked の出力は必ず DOMPurify を通し、
+  URI は `https?:`/`#` のみ許可(`javascript:`/`file:`/`data:` 遮断)。リンクは delegate で
+  preventDefault し、http(s) のみ `openInNewPane` で新規ブラウザペインに開く。
+  ローカル画像(相対パス)は v1 では表示されない(設計どおり)。
 
 ## 3. 既知の制約 / 見送り(v1)
 
@@ -55,3 +62,9 @@
 5. 2MB 超 / バイナリ(画像等)を開く → 「表示できません」メッセージ。
 6. 再起動 → フォルダ・タブ構成・アクティブファイルが復元(未保存編集は消える)。
 7. テーマ切替(⌘,)→ エディタも即 Mocha/Latte 連動。フォントサイズ変更も即反映。
+8. **プレビュー**: `.md` を開き「◫」→ 右半分にレンダリング。タイプすると追従。
+   見出し/表/コードブロックが GitHub 風に表示され、テーマにも連動。
+9. **プレビューの安全性**: `<script>alert(1)</script>` と
+   `<img src=x onerror="alert(2)">` と `[x](javascript:alert(3))` を含む md を開いて
+   プレビュー → 何も実行されない(script 除去・onerror 除去・リンク無効)ことを確認。
+   `[link](https://example.com)` のクリック → 新規ブラウザペインで開く。
