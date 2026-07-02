@@ -1,4 +1,5 @@
-import { BrowserWindow, Notification, type WebContents } from "electron";
+import { BrowserWindow, Notification, shell, type WebContents } from "electron";
+import { execFile } from "child_process";
 import { getSettings } from "./settings";
 
 /**
@@ -118,6 +119,11 @@ export function notifyTerminalActivity(
   if (now - (lastNotified.get(id) ?? 0) < DEBOUNCE_MS) return;
   lastNotified.set(id, now);
 
+  // Play the sound ourselves rather than via the Notification: unsigned dev
+  // builds aren't registered with macOS notification settings, so a
+  // notification-attached sound may never play. afplay needs no permission.
+  playAttentionSound();
+
   const n = new Notification({
     title: "ibe — ターミナル",
     body: osc9 || "処理が完了、または入力待ちです",
@@ -131,6 +137,21 @@ export function notifyTerminalActivity(
     if (!wc.isDestroyed()) wc.send("notify:activate", id);
   });
   n.show();
+}
+
+/**
+ * Audible cue independent of the notification system (which unsigned dev
+ * builds can't reliably use on macOS). macOS: play a system sound via afplay;
+ * elsewhere: the system beep.
+ */
+function playAttentionSound(): void {
+  if (process.platform === "darwin") {
+    execFile("afplay", ["/System/Library/Sounds/Glass.aiff"], () => {
+      /* sound is best-effort; ignore a missing afplay/file */
+    });
+  } else {
+    shell.beep();
+  }
 }
 
 /** Forget debounce state for a destroyed pty. */
