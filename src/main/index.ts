@@ -4,7 +4,9 @@ import {
   Menu,
   WebContentsView,
   ipcMain,
+  screen,
   shell,
+  type WebContents,
 } from "electron";
 import { join } from "path";
 import type { Bounds } from "../shared/ipc";
@@ -17,6 +19,8 @@ import { registerEditor } from "./editor";
 import { registerChromeBookmarks } from "./chromeBookmarks";
 import { attachBrowserContextMenu } from "./contextMenu";
 import { registerWebPermissions } from "./permissions";
+import { registerAdblock } from "./adblock";
+import { loadExtensions, loadedExtensions } from "./extensions";
 import { buildAppMenu } from "./menu";
 
 /**
@@ -26,7 +30,26 @@ import { buildAppMenu } from "./menu";
  */
 
 const views = new Map<string, WebContentsView>();
+/** Views hidden via browser:setVisible (Electron 33 has no View.getVisible). */
+const hiddenViews = new Set<string>();
 let mainWindow: BrowserWindow | null = null;
+
+/** The visible browser view under the mouse cursor (swipe-gesture target). */
+function viewWebContentsAtCursor(): WebContents | null {
+  if (!mainWindow) return null;
+  const pt = screen.getCursorScreenPoint();
+  const content = mainWindow.getContentBounds();
+  const x = pt.x - content.x;
+  const y = pt.y - content.y;
+  for (const [id, view] of views) {
+    if (hiddenViews.has(id)) continue;
+    const b = view.getBounds();
+    if (x >= b.x && x < b.x + b.width && y >= b.y && y < b.y + b.height) {
+      return view.webContents;
+    }
+  }
+  return null;
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -55,15 +78,33 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
+  // Three-finger discrete swipe (macOS "swipe between pages" set to two/three
+  // fingers). The default two-finger continuous swipe never fires this event —
+  // it's detected as wheel overscroll by the gesture preload in each view.
+  mainWindow.on("swipe", (_e, direction) => {
+    const wc = viewWebContentsAtCursor();
+    if (!wc) return;
+    if (direction === "left") wc.navigationHistory.goBack();
+    else if (direction === "right") wc.navigationHistory.goForward();
+  });
+
   mainWindow.on("closed", () => {
+    // Browser views die with their window, but ptys stay alive: reopening the
+    // window (macOS dock/⌘N) restores the layout and reattaches to them.
     for (const view of views.values()) view.webContents.close();
     views.clear();
-    killAllPtys();
+    hiddenViews.clear();
     mainWindow = null;
   });
 }
 
 const favicons = new Map<string, string>();
+/** Per-pane zoom factor, reapplied after each navigation (Electron resets it
+ *  on cross-origin loads). Kept here so the renderer needn't re-send on nav. */
+const zoomFactors = new Map<string, number>();
+
+const clampZoom = (z: number): number =>
+  Number.isFinite(z) ? Math.min(3, Math.max(0.3, z)) : 1;
 
 function sendState(id: string): void {
   const view = views.get(id);
@@ -80,15 +121,32 @@ function sendState(id: string): void {
   });
 }
 
-ipcMain.on("browser:create", (_e, id: string, url: string) => {
+ipcMain.on("browser:create", (_e, id: string, url: string, zoom?: number) => {
   if (!mainWindow || views.has(id)) return;
+  if (typeof zoom === "number" && zoom !== 1) zoomFactors.set(id, clampZoom(zoom));
 
-  const view = new WebContentsView();
+  const view = new WebContentsView({
+    webPreferences: {
+      // Gesture detection only (two-finger swipe / mouse side buttons);
+      // runs sandboxed in an isolated world, invisible to page scripts.
+      preload: join(__dirname, "../preload/gesture.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
   views.set(id, view);
   mainWindow.contentView.addChildView(view);
 
   const wc = view.webContents;
+  // apply the restored/initial zoom once the first document commits, then keep
+  // reapplying so cross-origin navigations don't silently reset it to 100%
+  const applyZoom = () => {
+    const z = zoomFactors.get(id);
+    if (z !== undefined) wc.setZoomFactor(z);
+  };
   wc.on("did-navigate", () => {
+    applyZoom();
     sendState(id);
     recordVisit(wc.getURL(), wc.getTitle());
   });
@@ -129,6 +187,14 @@ ipcMain.on("browser:setBounds", (_e, id: string, b: Bounds) => {
 
 ipcMain.on("browser:setVisible", (_e, id: string, visible: boolean) => {
   views.get(id)?.setVisible(visible);
+  if (visible) hiddenViews.delete(id);
+  else hiddenViews.add(id);
+});
+
+ipcMain.on("browser:setZoom", (_e, id: string, factor: number) => {
+  const z = clampZoom(factor);
+  zoomFactors.set(id, z);
+  views.get(id)?.webContents.setZoomFactor(z);
 });
 
 ipcMain.on("browser:navigate", (_e, id: string, url: string) => {
@@ -144,6 +210,17 @@ ipcMain.on("browser:goBack", (_e, id: string) =>
 ipcMain.on("browser:goForward", (_e, id: string) =>
   views.get(id)?.webContents.navigationHistory.goForward()
 );
+// Swipe / mouse-button navigation reported by the gesture preload. Only honor
+// senders that are actually one of our browser views.
+ipcMain.on("gesture:navigate", (e, dir: "back" | "forward") => {
+  for (const view of views.values()) {
+    if (view.webContents !== e.sender) continue;
+    if (dir === "back") e.sender.navigationHistory.goBack();
+    else e.sender.navigationHistory.goForward();
+    return;
+  }
+});
+
 ipcMain.on("browser:reload", (_e, id: string) =>
   views.get(id)?.webContents.reload()
 );
@@ -160,7 +237,9 @@ ipcMain.on("browser:destroy", (_e, id: string) => {
   mainWindow.contentView.removeChildView(view);
   view.webContents.close();
   views.delete(id);
+  hiddenViews.delete(id);
   favicons.delete(id);
+  zoomFactors.delete(id);
 });
 
 registerSettings();
@@ -171,14 +250,20 @@ registerBookmarks(() => mainWindow?.webContents ?? null);
 registerHistory();
 registerSession();
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   registerWebPermissions(); // allow-listed origins may show desktop notifications
-  Menu.setApplicationMenu(buildAppMenu(() => mainWindow?.webContents ?? null));
+  registerAdblock(); // async; guards its own failures (offline -> unblocked)
+  await loadExtensions(); // before menu build so they appear in it
+  Menu.setApplicationMenu(
+    buildAppMenu(() => mainWindow?.webContents ?? null, loadedExtensions())
+  );
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+app.on("before-quit", () => killAllPtys());
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

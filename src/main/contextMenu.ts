@@ -18,6 +18,31 @@ function truncate(s: string, max = 24): string {
   return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
+/**
+ * Toggle picture-in-picture for the <video> under the click point. Walks the
+ * whole elementsFromPoint stack because sites (e.g. Google Meet) layer name
+ * badges and hover controls over their video tiles.
+ */
+function pipToggleScript(x: number, y: number): string {
+  return `(() => {
+    const hits = document.elementsFromPoint(${Math.round(x)}, ${Math.round(y)});
+    let video = hits.find((el) => el.tagName === "VIDEO");
+    if (!video) {
+      for (const el of hits) {
+        const v = el.querySelector?.("video");
+        if (v) { video = v; break; }
+      }
+    }
+    if (!video) return;
+    if (document.pictureInPictureElement === video) {
+      document.exitPictureInPicture().catch(() => {});
+    } else {
+      video.disablePictureInPicture = false;
+      video.requestPictureInPicture().catch(() => {});
+    }
+  })()`;
+}
+
 export function attachBrowserContextMenu(
   wc: WebContents,
   paneId: string,
@@ -48,6 +73,20 @@ export function attachBrowserContextMenu(
         {
           label: "画像アドレスをコピー",
           click: () => clipboard.writeText(params.srcURL),
+        },
+        { type: "separator" }
+      );
+    }
+
+    if (params.mediaType === "video") {
+      items.push(
+        {
+          label: "ピクチャインピクチャ",
+          // userGesture: true — requestPictureInPicture needs user activation
+          click: () =>
+            wc
+              .executeJavaScript(pipToggleScript(params.x, params.y), true)
+              .catch(() => {}),
         },
         { type: "separator" }
       );

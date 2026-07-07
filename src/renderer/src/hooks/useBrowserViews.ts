@@ -31,7 +31,7 @@ export function useBrowserViews(
 
     for (const d of desired) {
       if (!known.current.has(d.id)) {
-        ibe.createBrowser(d.id, d.url);
+        ibe.createBrowser(d.id, d.url, d.zoom); // restore persisted zoom
         visible.current.set(d.id, false);
       }
       known.current.set(d.id, d.tabId);

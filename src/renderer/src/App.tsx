@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useStore, visibleTerminalSessions } from "./store";
 import { collectLeaves } from "./tree";
+import { nextZoom } from "./zoom";
 import { useBrowserViews } from "./hooks/useBrowserViews";
 import { useTerminals } from "./hooks/useTerminals";
 import { registerBoundsRunner, requestBoundsSync } from "./boundsSync";
@@ -61,8 +62,19 @@ export function App() {
     () =>
       ibe.onOpenNew((r) => {
         const st = useStore.getState();
-        if (r.target === "tab") st.openInNewTab(r.url);
-        else st.openInNewPane(r.fromId, r.url);
+        if (r.target === "tab") return st.openInNewTab(r.url);
+        // requests without an originating pane (e.g. the Extensions menu)
+        // split off the focused pane, or the active tab's first pane
+        let fromId = r.fromId;
+        if (!fromId) {
+          const tab = st.tabs.find((t) => t.id === st.activeTabId);
+          const leaves = tab ? collectLeaves(tab.root) : [];
+          fromId =
+            (st.focusedPaneId && leaves.some((l) => l.id === st.focusedPaneId)
+              ? st.focusedPaneId
+              : leaves[0]?.id) ?? "";
+        }
+        if (fromId) st.openInNewPane(fromId, r.url);
       }),
     []
   );
@@ -166,6 +178,20 @@ export function App() {
             return;
           case "hard-reload":
             if (target.kind === "browser") ibe.hardReload(target.id);
+            return;
+          case "zoom-in":
+          case "zoom-out":
+          case "zoom-reset":
+            if (target.kind === "browser") {
+              const cur = target.zoom ?? 1;
+              const next =
+                action === "zoom-reset"
+                  ? 1
+                  : action === "zoom-in"
+                    ? nextZoom(cur, 1)
+                    : nextZoom(cur, -1);
+              st.setZoom(target.id, next);
+            }
             return;
           case "focus-address": {
             if (target.kind !== "browser") return;

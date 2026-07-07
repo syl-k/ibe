@@ -25,6 +25,7 @@ function terminalIds(tabs: Tab[]): Set<string> {
  */
 export function useTerminals(tabs: Tab[]): void {
   const known = useRef(new Set<string>());
+  const gcDone = useRef(false);
 
   useLayoutEffect(() => {
     const desired = terminalIds(tabs);
@@ -32,9 +33,17 @@ export function useTerminals(tabs: Tab[]): void {
     for (const id of desired) {
       if (!known.current.has(id)) {
         // spawn at a sane default; the view resizes the pty once it fits.
+        // For ids restored from a persisted session the pty may already be
+        // alive in main — create is a no-op and attach replays its backlog.
         ibe.term.create(id, 80, 24);
         known.current.add(id);
       }
+    }
+
+    // once per renderer boot: reap ptys that no restored pane references
+    if (!gcDone.current) {
+      gcDone.current = true;
+      ibe.term.gc([...desired]);
     }
     for (const id of [...known.current]) {
       if (!desired.has(id)) {

@@ -28,6 +28,7 @@ const term: TerminalApi = {
   input: (id, data) => ipcRenderer.send("term:input", id, data),
   resize: (id, cols, rows) => ipcRenderer.send("term:resize", id, cols, rows),
   destroy: (id) => ipcRenderer.send("term:destroy", id),
+  gc: (liveIds) => ipcRenderer.send("term:gc", liveIds),
   onData: (id, cb) => {
     const listener = (_e: unknown, p: { id: string; data: string }) => {
       if (p.id === id) cb(p.data);
@@ -64,6 +65,7 @@ const history: HistoryApi = {
 const session: SessionApi = {
   load: () => ipcRenderer.invoke("session:load"),
   save: (data) => ipcRenderer.send("session:save", data),
+  quarantine: (data) => ipcRenderer.send("session:quarantine", data),
 };
 
 const settings: SettingsApi = {
@@ -102,7 +104,9 @@ const chromeBookmarks: ChromeBookmarksApi = {
 };
 
 const api: IbeApi = {
-  createBrowser: (id, url) => ipcRenderer.send("browser:create", id, url),
+  createBrowser: (id, url, zoom) =>
+    ipcRenderer.send("browser:create", id, url, zoom),
+  setZoom: (id, factor) => ipcRenderer.send("browser:setZoom", id, factor),
   setBounds: (id, b: Bounds) => ipcRenderer.send("browser:setBounds", id, b),
   setVisible: (id, visible) => ipcRenderer.send("browser:setVisible", id, visible),
   navigate: (id, url) => ipcRenderer.send("browser:navigate", id, url),

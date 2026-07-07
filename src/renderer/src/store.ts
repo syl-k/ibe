@@ -85,6 +85,8 @@ interface State {
   addTab: () => void;
   closeTab: (id: string) => void;
   nextTab: (delta: number) => void;
+  /** rename a workspace tab; blank names are ignored */
+  renameTab: (id: string, title: string) => void;
 
   focusPane: (id: string) => void;
   splitPane: (id: string, dir: "row" | "col") => void;
@@ -92,6 +94,8 @@ interface State {
   toggleKind: (id: string) => void;
   setRatio: (splitId: string, ratio: number) => void;
   setUrl: (paneId: string, url: string) => void;
+  /** set a browser pane's zoom factor (clamped; also pushed to its native view) */
+  setZoom: (paneId: string, factor: number) => void;
   /** apply a BrowserState update from main (url + live chrome state) */
   applyBrowserState: (s: BrowserState) => void;
   /** open `url` in a new browser pane split off from `fromId` */
@@ -113,8 +117,9 @@ interface State {
   closeEditorFile: (paneId: string, path: string) => void;
   setActiveEditorFile: (paneId: string, path: string) => void;
 
-  /** replace the layout from a persisted session (validated) */
-  hydrate: (raw: unknown) => void;
+  /** replace the layout from a persisted session (validated);
+   *  returns false when the payload was rejected (caller should quarantine) */
+  hydrate: (raw: unknown) => boolean;
 }
 
 const SESSION_VERSION = 1;
@@ -125,37 +130,42 @@ export interface PersistedSession {
   tabs: Tab[];
 }
 
-/** Drop live pty session ids before persisting (they don't survive a restart). */
-function stripSessions(node: LayoutNode): LayoutNode {
+/**
+ * Sanitize persisted session ids after restore, KEEPING them: the pty for a
+ * restored id may still be alive in the main process (renderer reload, window
+ * close/reopen), in which case term:create is a no-op and term:attach replays
+ * its backlog — the running shell (and whatever runs in it) comes back intact.
+ * Only terminal leaves with no usable ids get a fresh session (new shell).
+ */
+function ensureSessions(node: LayoutNode): LayoutNode {
   if (node.type === "leaf") {
     if (node.kind !== "terminal") return node;
-    return { type: "leaf", id: node.id, kind: "terminal", url: node.url };
+    const sessions = (node.sessions ?? []).filter(
+      (s): s is string => typeof s === "string"
+    );
+    if (sessions.length === 0) {
+      const session = makeId("sess");
+      return { ...node, sessions: [session], activeSessionId: session };
+    }
+    const activeSessionId =
+      node.activeSessionId && sessions.includes(node.activeSessionId)
+        ? node.activeSessionId
+        : sessions[0];
+    return { ...node, sessions, activeSessionId };
   }
   return {
     ...node,
-    children: [stripSessions(node.children[0]), stripSessions(node.children[1])],
+    children: [ensureSessions(node.children[0]), ensureSessions(node.children[1])],
   };
 }
 
-/** Give every terminal leaf one fresh session (a new shell) after restore. */
-function freshSessions(node: LayoutNode): LayoutNode {
-  if (node.type === "leaf") {
-    if (node.kind !== "terminal") return node;
-    const session = makeId("sess");
-    return { ...node, sessions: [session], activeSessionId: session };
-  }
-  return {
-    ...node,
-    children: [freshSessions(node.children[0]), freshSessions(node.children[1])],
-  };
-}
-
-/** Serialize the persistable slice of the store (layout + active tab). */
+/** Serialize the persistable slice of the store (layout + active tab).
+ *  Session ids are included so a reload can reattach to live ptys. */
 export function serializeSession(s: State): PersistedSession {
   return {
     version: SESSION_VERSION,
     activeTabId: s.activeTabId,
-    tabs: s.tabs.map((t) => ({ ...t, root: stripSessions(t.root) })),
+    tabs: s.tabs,
   };
 }
 
@@ -213,6 +223,9 @@ function collectIds(node: LayoutNode, out: string[]): void {
   if (node.type === "split") {
     collectIds(node.children[0], out);
     collectIds(node.children[1], out);
+  } else if (node.sessions) {
+    // session ids share the same counter — reseed past them too
+    out.push(...node.sessions);
   }
 }
 
@@ -266,6 +279,15 @@ export const useStore = create<State>((set, get) => ({
           ? tabs[Math.min(idx, tabs.length - 1)].id
           : s.activeTabId;
       return { tabs, activeTabId };
+    }),
+
+  renameTab: (id, title) =>
+    set((s) => {
+      const trimmed = title.trim();
+      if (!trimmed) return s;
+      return {
+        tabs: s.tabs.map((t) => (t.id === id ? { ...t, title: trimmed } : t)),
+      };
     }),
 
   nextTab: (delta) =>
@@ -435,7 +457,7 @@ export const useStore = create<State>((set, get) => ({
       data.tabs.length === 0 ||
       typeof data.activeTabId !== "string"
     ) {
-      return; // missing / unknown schema -> keep the default layout
+      return false; // missing / unknown schema -> keep the default layout
     }
 
     // validate each tab; bail entirely on anything malformed
@@ -443,7 +465,7 @@ export const useStore = create<State>((set, get) => ({
     const valid: Tab[] = [];
     for (const t of raws) {
       const tab = t as { id?: unknown; title?: unknown; root?: unknown };
-      if (typeof tab.id !== "string" || !isLayoutNode(tab.root)) return;
+      if (typeof tab.id !== "string" || !isLayoutNode(tab.root)) return false;
       valid.push({
         id: tab.id,
         title: typeof tab.title === "string" ? tab.title : "Workspace",
@@ -451,7 +473,8 @@ export const useStore = create<State>((set, get) => ({
       });
     }
 
-    // reseed the id counter past restored ids, then mint fresh terminal sessions
+    // reseed the id counter past restored ids (incl. session ids), then keep
+    // restored sessions so live ptys are reattached rather than replaced
     const ids: string[] = [];
     for (const t of valid) {
       ids.push(t.id);
@@ -459,12 +482,13 @@ export const useStore = create<State>((set, get) => ({
     }
     reseedCounter(ids);
 
-    const tabs = valid.map((t) => ({ ...t, root: freshSessions(t.root) }));
+    const tabs = valid.map((t) => ({ ...t, root: ensureSessions(t.root) }));
     const activeTabId = tabs.some((t) => t.id === data.activeTabId)
       ? data.activeTabId
       : tabs[0].id;
 
     set({ tabs, activeTabId, focusedPaneId: null, viewState: {}, omniboxPaneId: null });
+    return true;
   },
 
   setRatio: (splitId, ratio) =>
@@ -480,6 +504,18 @@ export const useStore = create<State>((set, get) => ({
         };
       }),
     })),
+
+  setZoom: (paneId, factor) => {
+    const zoom = Math.min(3, Math.max(0.3, factor));
+    window.ibe.setZoom(paneId, zoom);
+    set((s) => ({
+      tabs: s.tabs.map((t) =>
+        findLeaf(t.root, paneId)
+          ? { ...t, root: transformLeaf(t.root, paneId, (l) => ({ ...l, zoom })) }
+          : t
+      ),
+    }));
+  },
 
   applyBrowserState: (bs) =>
     set((s) => ({
@@ -533,11 +569,12 @@ export const useStore = create<State>((set, get) => ({
 /** All browser leaves across every tab, with the tab they belong to. */
 export function browserLeavesByTab(
   tabs: Tab[]
-): Array<{ id: string; url: string; tabId: string }> {
-  const out: Array<{ id: string; url: string; tabId: string }> = [];
+): Array<{ id: string; url: string; zoom?: number; tabId: string }> {
+  const out: Array<{ id: string; url: string; zoom?: number; tabId: string }> = [];
   for (const t of tabs) {
     for (const l of collectLeaves(t.root)) {
-      if (l.kind === "browser") out.push({ id: l.id, url: l.url, tabId: t.id });
+      if (l.kind === "browser")
+        out.push({ id: l.id, url: l.url, zoom: l.zoom, tabId: t.id });
     }
   }
   return out;

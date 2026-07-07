@@ -13,13 +13,15 @@ import {
 /**
  * Owns one login-shell pty per terminal pane, keyed by the renderer's pane id.
  *
- * A pty outlives renderer mounts: it is spawned on `term:create`, killed only on
- * `term:destroy` (when the pane leaves the layout). Tab switches unmount the
- * xterm view but keep the pty; we keep a capped scrollback buffer so the
- * re-mounting view can `term:attach` and replay what it missed.
+ * A pty outlives renderer mounts, renderer reloads, and window close: it is
+ * spawned on `term:create`, killed only on `term:destroy` (pane left the
+ * layout), `term:gc` (no longer in the restored layout), or app quit. Session
+ * ids are persisted with the layout, so a reloaded renderer re-issues
+ * `term:create` (idempotent) + `term:attach` and replays the scrollback —
+ * long-running processes (builds, agents) survive with their output.
  */
 
-const SCROLLBACK_LIMIT = 256 * 1024; // bytes of backlog kept per pty
+const SCROLLBACK_LIMIT = 2 * 1024 * 1024; // bytes of backlog kept per pty
 
 interface Session {
   proc: pty.IPty;
@@ -122,6 +124,20 @@ export function registerPtyHandlers(getWebContents: () => WebContents | null): v
   // pane's shown session) so we don't notify for what the user is looking at
   ipcMain.on("term:visible", (_e, ids: string[]) => {
     setVisibleSessions(Array.isArray(ids) ? ids : []);
+  });
+
+  // Reap ptys that survived a renderer reload but are absent from the restored
+  // layout (e.g. a pane closed while its save was still debounced). Sent once
+  // per renderer boot with the full set of live session ids.
+  ipcMain.on("term:gc", (_e, liveIds: string[]) => {
+    if (!Array.isArray(liveIds)) return;
+    const live = new Set(liveIds);
+    for (const [id, session] of sessions) {
+      if (live.has(id)) continue;
+      session.proc.kill();
+      sessions.delete(id);
+      forgetTerminalNotify(id);
+    }
   });
 
   ipcMain.on("term:destroy", (_e, id: string) => {

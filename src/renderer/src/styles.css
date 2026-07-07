@@ -13,6 +13,9 @@
   --term-bg: #11111b;
   --tabbar-h: 38px;
   --toolbar-h: 50px;
+  /* top window chrome (tab bar + bookmarks bar); dark theme keeps base tones */
+  --chrome-bg: var(--bg);
+  --chrome-bg-alt: var(--pane-bg);
 }
 
 :root[data-theme="latte"] {
@@ -27,6 +30,9 @@
   --accent: #1e66f5;
   --yellow: #df8e1d;
   --term-bg: #fafafa;
+  /* light theme: tint the top chrome 水色 (light blue) */
+  --chrome-bg: #b9dcf5;
+  --chrome-bg-alt: #d6ecfa;
 }
 
 * {
@@ -66,7 +72,7 @@ body.resizing {
   flex: 0 0 var(--tabbar-h);
   display: flex;
   align-items: flex-end;
-  background: var(--bg);
+  background: var(--chrome-bg);
   padding-left: 80px; /* room for macOS traffic lights (hiddenInset) */
   -webkit-app-region: drag;
 }
@@ -91,13 +97,23 @@ body.resizing {
   max-width: 200px;
 }
 .tab.active {
-  background: var(--pane-bg);
+  background: var(--chrome-bg-alt);
   color: var(--text);
 }
 .tab-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.tab-rename {
+  width: 110px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  padding: 1px 4px;
+  outline: none;
 }
 .tab-close,
 .tab-add {
@@ -127,7 +143,7 @@ body.resizing {
   align-items: center;
   gap: 2px;
   padding: 3px 8px;
-  background: var(--pane-bg);
+  background: var(--chrome-bg-alt);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
 }
@@ -276,6 +292,15 @@ body.resizing {
   color: var(--muted);
   font-size: 11px;
   padding: 0 4px;
+}
+/* compact zoom readout; only shown when a pane is zoomed off 100% */
+.toolbar button.zoom-indicator {
+  font-size: 12px;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .toolbar .spacer {
   flex: 1 1 auto;

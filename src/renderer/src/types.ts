@@ -6,6 +6,8 @@ export interface LeafNode {
   kind: Kind;
   /** last-known url (browser panes only) */
   url: string;
+  /** per-pane zoom factor (browser panes only; 1 = 100%, omitted = 100%) */
+  zoom?: number;
   /** pty session ids in this pane (terminal panes only; ≥1) */
   sessions?: string[];
   /** which session is shown (terminal panes only) */

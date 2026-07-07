@@ -43,6 +43,9 @@ export type ShortcutAction =
   | "focus-address"
   | "reload"
   | "hard-reload"
+  | "zoom-in"
+  | "zoom-out"
+  | "zoom-reset"
   | "open-settings"
   | "save-file"
   | "open-library";
@@ -126,6 +129,8 @@ export interface TerminalApi {
   resize(id: string, cols: number, rows: number): void;
   /** Kill the pty and drop its buffer (pane removed from layout). */
   destroy(id: string): void;
+  /** Kill every pty NOT in `liveIds` (orphans absent from the restored layout). */
+  gc(liveIds: string[]): void;
   onData(id: string, cb: (data: string) => void): () => void;
   onExit(id: string, cb: (exitCode: number) => void): () => void;
   /** report the sessions currently on-screen so bells for them aren't notified */
@@ -206,11 +211,15 @@ export interface EditorApi {
 export interface SessionApi {
   load(): Promise<unknown>;
   save(session: unknown): void;
+  /** stash a payload that failed to restore (kept as session.rejected.json) */
+  quarantine(session: unknown): void;
 }
 
 /** The API the preload bridge exposes on `window.ibe`. */
 export interface IbeApi {
-  createBrowser(id: string, url: string): void;
+  createBrowser(id: string, url: string, zoom?: number): void;
+  /** set a browser pane's zoom factor (1 = 100%); persists across navigations */
+  setZoom(id: string, factor: number): void;
   setBounds(id: string, bounds: Bounds): void;
   setVisible(id: string, visible: boolean): void;
   navigate(id: string, url: string): void;

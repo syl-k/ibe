@@ -1,5 +1,6 @@
 import { app, Menu, type MenuItemConstructorOptions, type WebContents } from "electron";
 import type { ShortcutAction } from "../shared/ipc";
+import type { LoadedExtension } from "./extensions";
 
 /**
  * Application menu. Its accelerators are the app's real keyboard shortcuts:
@@ -7,7 +8,10 @@ import type { ShortcutAction } from "../shared/ipc";
  * a WebContentsView has keyboard focus. Each item just forwards a ShortcutAction
  * to the renderer, which resolves it against its own focused pane.
  */
-export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
+export function buildAppMenu(
+  getWebContents: () => WebContents | null,
+  extensions: LoadedExtension[] = []
+): Menu {
   const send = (action: ShortcutAction) => () => getWebContents()?.send("shortcut", action);
 
   // Some actions target a renderer DOM element (address bar, settings modal).
@@ -59,6 +63,12 @@ export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
       { label: "Focus Address Bar", accelerator: "CmdOrCtrl+L", click: focusThenSend("focus-address") },
       { label: "Reload Pane", accelerator: "CmdOrCtrl+R", click: send("reload") },
       { label: "Hard Reload Pane", accelerator: "CmdOrCtrl+Shift+R", click: send("hard-reload") },
+      { type: "separator" },
+      { label: "Zoom In", accelerator: "CmdOrCtrl+=", click: send("zoom-in") },
+      // second accelerator so ⌘+ (Shift+=) and the numpad + also zoom in
+      { label: "Zoom In (+)", accelerator: "CmdOrCtrl+Plus", visible: false, acceleratorWorksWhenHidden: true, click: send("zoom-in") },
+      { label: "Zoom Out", accelerator: "CmdOrCtrl+-", click: send("zoom-out") },
+      { label: "Reset Zoom", accelerator: "CmdOrCtrl+0", click: send("zoom-reset") },
       { label: "Save File", accelerator: "CmdOrCtrl+S", click: send("save-file") },
       { label: "Library…", accelerator: "CmdOrCtrl+Y", click: focusThenSend("open-library") },
       { type: "separator" },
@@ -74,10 +84,29 @@ export function buildAppMenu(getWebContents: () => WebContents | null): Menu {
     ],
   };
 
+  // Installed Chrome extensions (userData/extensions) — each opens its UI
+  // page as a browser pane split off the focused pane.
+  const extensionsMenu: MenuItemConstructorOptions[] = extensions.length
+    ? [
+        {
+          label: "Extensions",
+          submenu: extensions.map((ext) => ({
+            label: ext.name,
+            click: () =>
+              getWebContents()?.send("browser:open-new", {
+                fromId: "",
+                url: ext.url,
+              }),
+          })),
+        },
+      ]
+    : [];
+
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [appMenu] : []),
     { role: "editMenu" }, // undo/cut/copy/paste/selectAll — needed in browser & terminal
     workspaceMenu,
+    ...extensionsMenu,
     { role: "windowMenu" },
   ];
 

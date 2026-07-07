@@ -12,7 +12,12 @@ async function boot(): Promise<void> {
   // no throwaway views spawned for the default layout)
   try {
     const saved = await ibe.session.load();
-    if (saved) useStore.getState().hydrate(saved);
+    if (saved && !useStore.getState().hydrate(saved)) {
+      // keep the rejected payload out of harm's way: the default layout is
+      // about to be auto-saved over session.json
+      console.error("[session] restore rejected — quarantining payload");
+      ibe.session.quarantine(saved);
+    }
   } catch (err) {
     console.error("[session] restore failed:", err);
   }

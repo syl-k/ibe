@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LeafNode } from "../types";
 import { useStore } from "../store";
 import { flattenChromeTree } from "../chromeFlat";
+import { zoomLabel } from "../zoom";
 import { PaneActions } from "./PaneActions";
 
 const ibe = window.ibe;
@@ -26,6 +27,7 @@ const MAX_BOOKMARK_SUGGESTIONS = 3;
 
 export function BrowserPane({ node }: { node: LeafNode }) {
   const setUrl = useStore((s) => s.setUrl);
+  const setZoom = useStore((s) => s.setZoom);
   const setOmnibox = useStore((s) => s.setOmnibox);
   const view = useStore((s) => s.viewState[node.id]);
   const bookmarked = useStore((s) => s.bookmarks.some((b) => b.url === node.url));
@@ -173,6 +175,15 @@ export function BrowserPane({ node }: { node: LeafNode }) {
         >
           {bookmarked ? "★" : "☆"}
         </button>
+        {node.zoom !== undefined && node.zoom !== 1 && (
+          <button
+            className="zoom-indicator"
+            title="ズームを100%に戻す（⌘0）"
+            onClick={() => setZoom(node.id, 1)}
+          >
+            {zoomLabel(node.zoom)}
+          </button>
+        )}
         <PaneActions id={node.id} toggleLabel="T" toggleTitle="ターミナルに切替" />
       </div>
 

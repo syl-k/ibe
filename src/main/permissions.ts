@@ -28,18 +28,23 @@ function originOf(url: string | undefined): string | null {
 export function registerWebPermissions(): void {
   const ses = session.defaultSession;
 
+  // Locally installed extensions (userData/extensions) may notify freely —
+  // e.g. LINE's new-message notifications via the injected chrome.* shim.
+  const allowed = (origin: string | null): boolean =>
+    origin !== null &&
+    (NOTIFY_ORIGINS.has(origin) || origin.startsWith("chrome-extension://"));
+
   // Async grant: the page called Notification.requestPermission().
   ses.setPermissionRequestHandler((_wc, permission, callback, details) => {
     if (permission === "notifications") {
-      const origin = originOf(details.requestingUrl);
-      return callback(origin !== null && NOTIFY_ORIGINS.has(origin));
+      return callback(allowed(originOf(details.requestingUrl)));
     }
     callback(true); // preserve default-grant for other permissions
   });
 
   // Sync state check: the page read Notification.permission.
   ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) => {
-    if (permission === "notifications") return NOTIFY_ORIGINS.has(requestingOrigin);
+    if (permission === "notifications") return allowed(requestingOrigin);
     return true;
   });
 }
