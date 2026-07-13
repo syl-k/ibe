@@ -947,6 +947,55 @@ body.resizing {
   color: var(--muted);
   line-height: 1.4;
 }
+.pw-list {
+  list-style: none;
+  margin: 4px 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.pw-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.pw-item:last-child {
+  border-bottom: none;
+}
+.pw-site {
+  flex: 0 0 auto;
+  font-weight: 500;
+  color: var(--text);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-user {
+  flex: 1 1 auto;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-del {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.pw-del:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .settings-check {
   display: flex;
   align-items: center;

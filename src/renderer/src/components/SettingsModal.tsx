@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChromeProfile, ThemeName } from "../../../shared/ipc";
+import type { ChromeProfile, SavedCredential, ThemeName } from "../../../shared/ipc";
 import { useStore } from "../store";
 import { useSettings } from "../settings";
 
@@ -7,6 +7,54 @@ const THEMES: Array<{ value: ThemeName; label: string }> = [
   { value: "mocha", label: "Dark (Mocha)" },
   { value: "latte", label: "Light (Latte)" },
 ];
+
+/** Saved-passwords manager: lists origins + usernames, deletes on request.
+ *  Secrets stay in main — this only ever sees origin/username metadata. */
+function PasswordsSection() {
+  const [creds, setCreds] = useState<SavedCredential[]>([]);
+  const [available, setAvailable] = useState(true);
+
+  useEffect(() => {
+    window.ibe.passwords.available().then(setAvailable);
+    window.ibe.passwords.list().then(setCreds);
+    return window.ibe.passwords.onChange(setCreds);
+  }, []);
+
+  return (
+    <div className="settings-field">
+      <label>保存したパスワード</label>
+      {!available ? (
+        <p className="settings-hint">
+          この環境では OS の暗号化(Keychain)が使えないため、パスワード保存は無効です。
+        </p>
+      ) : creds.length === 0 ? (
+        <p className="settings-hint">
+          まだ保存されていません。ログインフォームを送信すると保存を確認します。
+        </p>
+      ) : (
+        <ul className="pw-list">
+          {creds.map((c) => (
+            <li key={`${c.origin} ${c.username}`} className="pw-item">
+              <span className="pw-site">{c.origin.replace(/^https?:\/\//, "")}</span>
+              <span className="pw-user">{c.username || "(ユーザー名なし)"}</span>
+              <button
+                className="pw-del"
+                title="削除"
+                onClick={() => window.ibe.passwords.remove(c.origin, c.username)}
+              >
+                削除
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="settings-hint">
+        パスワードは OS の暗号化ストレージ(Keychain)で暗号化して保存され、
+        同じサイトを次に開いたとき自動入力します。
+      </p>
+    </div>
+  );
+}
 
 /**
  * Preferences dialog (⌘,). Rendered as renderer DOM over the workspace; the
@@ -148,6 +196,8 @@ export function SettingsModal() {
             そのセッションのタブ／ペインに移動します。
           </p>
         </div>
+
+        <PasswordsSection />
       </div>
     </div>
   );

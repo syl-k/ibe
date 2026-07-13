@@ -215,6 +215,26 @@ export interface SessionApi {
   quarantine(session: unknown): void;
 }
 
+/** A saved login credential (password itself never leaves the main process). */
+export interface SavedCredential {
+  origin: string;
+  username: string;
+  updatedAt: number;
+}
+
+/** Password manager surface exposed to the renderer (management UI only —
+ *  capture/fill happen in the browser-pane preload, not here). */
+export interface PasswordsApi {
+  /** all saved credentials (usernames + origins, no secrets) */
+  list(): Promise<SavedCredential[]>;
+  /** forget one saved credential */
+  remove(origin: string, username: string): void;
+  /** true if OS-backed encryption is available (else saving is disabled) */
+  available(): Promise<boolean>;
+  /** saved list changed (add/remove) */
+  onChange(cb: (creds: SavedCredential[]) => void): () => void;
+}
+
 /** The API the preload bridge exposes on `window.ibe`. */
 export interface IbeApi {
   createBrowser(id: string, url: string, zoom?: number): void;
@@ -247,4 +267,5 @@ export interface IbeApi {
   settings: SettingsApi;
   editor: EditorApi;
   chromeBookmarks: ChromeBookmarksApi;
+  passwords: PasswordsApi;
 }

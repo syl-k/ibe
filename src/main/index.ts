@@ -21,6 +21,7 @@ import { attachBrowserContextMenu } from "./contextMenu";
 import { registerWebPermissions } from "./permissions";
 import { registerAdblock } from "./adblock";
 import { loadExtensions, loadedExtensions } from "./extensions";
+import { registerPasswords } from "./passwords";
 import { buildAppMenu } from "./menu";
 
 /**
@@ -249,6 +250,11 @@ registerPtyHandlers(() => mainWindow?.webContents ?? null);
 registerBookmarks(() => mainWindow?.webContents ?? null);
 registerHistory();
 registerSession();
+// map a browser view's WebContents back to its pane id (for save prompts)
+registerPasswords((wc) => {
+  for (const [id, view] of views) if (view.webContents === wc) return id;
+  return null;
+});
 
 app.whenReady().then(async () => {
   registerWebPermissions(); // allow-listed origins may show desktop notifications

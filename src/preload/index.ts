@@ -10,6 +10,8 @@ import type {
   HistoryApi,
   IbeApi,
   OpenNewRequest,
+  PasswordsApi,
+  SavedCredential,
   SessionApi,
   Settings,
   SettingsApi,
@@ -103,6 +105,17 @@ const chromeBookmarks: ChromeBookmarksApi = {
   },
 };
 
+const passwords: PasswordsApi = {
+  list: () => ipcRenderer.invoke("pw:list"),
+  remove: (origin, username) => ipcRenderer.send("pw:remove", origin, username),
+  available: () => ipcRenderer.invoke("pw:available"),
+  onChange: (cb) => {
+    const listener = (_e: unknown, creds: SavedCredential[]) => cb(creds);
+    ipcRenderer.on("pw:change", listener);
+    return () => ipcRenderer.removeListener("pw:change", listener);
+  },
+};
+
 const api: IbeApi = {
   createBrowser: (id, url, zoom) =>
     ipcRenderer.send("browser:create", id, url, zoom),
@@ -148,6 +161,7 @@ const api: IbeApi = {
   settings,
   editor,
   chromeBookmarks,
+  passwords,
 };
 
 contextBridge.exposeInMainWorld("ibe", api);
