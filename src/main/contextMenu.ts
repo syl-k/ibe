@@ -19,9 +19,11 @@ function truncate(s: string, max = 24): string {
 }
 
 /**
- * Toggle picture-in-picture for the <video> under the click point. Walks the
- * whole elementsFromPoint stack because sites (e.g. Google Meet) layer name
- * badges and hover controls over their video tiles.
+ * Toggle picture-in-picture for a video, enlarging just that video into a
+ * floating, resizable window. Prefers the video under the click point (walking
+ * elementsFromPoint, since sites like Google Meet layer name badges / hover
+ * controls over their tiles); if the click didn't land on a video, falls back
+ * to the LARGEST video on the page — which for Meet is the shared screen.
  */
 function pipToggleScript(x: number, y: number): string {
   return `(() => {
@@ -33,6 +35,13 @@ function pipToggleScript(x: number, y: number): string {
         if (v) { video = v; break; }
       }
     }
+    if (!video) {
+      // no video under the cursor → pick the biggest playing video (screen share)
+      const area = (v) => { const r = v.getBoundingClientRect(); return r.width * r.height; };
+      video = [...document.querySelectorAll("video")]
+        .filter((v) => (v.readyState >= 1 || v.srcObject) && area(v) > 0)
+        .sort((a, b) => area(b) - area(a))[0];
+    }
     if (!video) return;
     if (document.pictureInPictureElement === video) {
       document.exitPictureInPicture().catch(() => {});
@@ -43,16 +52,36 @@ function pipToggleScript(x: number, y: number): string {
   })()`;
 }
 
+/** Whether the page currently has any <video> (raced with a short timeout so a
+ *  busy renderer never stalls the context menu). */
+async function pageHasVideo(wc: WebContents): Promise<boolean> {
+  try {
+    return await Promise.race([
+      wc.executeJavaScript(`!!document.querySelector("video")`),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 200)),
+    ]);
+  } catch {
+    return false;
+  }
+}
+
 export function attachBrowserContextMenu(
   wc: WebContents,
   paneId: string,
   getHost: () => WebContents | null
 ): void {
-  wc.on("context-menu", (_e, params: ContextMenuParams) => {
+  wc.on("context-menu", async (_e, params: ContextMenuParams) => {
     const openInNewPane = (url: string) =>
       getHost()?.send("browser:open-new", { fromId: paneId, url });
     const openInNewTab = (url: string) =>
       getHost()?.send("browser:open-new", { fromId: paneId, url, target: "tab" });
+
+    // Offer PiP whenever the page has a video — not only when the click landed
+    // exactly on one. Google Meet overlays controls on the shared screen, so a
+    // right-click there reports mediaType "none"; without this the menu item
+    // would never appear over the very thing the user wants to enlarge.
+    const showPip =
+      params.mediaType === "video" || (await pageHasVideo(wc));
 
     const items: MenuItemConstructorOptions[] = [];
 
@@ -78,10 +107,10 @@ export function attachBrowserContextMenu(
       );
     }
 
-    if (params.mediaType === "video") {
+    if (showPip) {
       items.push(
         {
-          label: "ピクチャインピクチャ",
+          label: "画面共有を拡大（ピクチャインピクチャ）",
           // userGesture: true — requestPictureInPicture needs user activation
           click: () =>
             wc
