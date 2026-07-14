@@ -1,0 +1,42 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#45475a"/>
+      <stop offset="1" stop-color="#1e1e2e"/>
+    </linearGradient>
+    <linearGradient id="browser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#89b4fa"/>
+      <stop offset="1" stop-color="#74a0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- app tile (macOS rounded square with margin) -->
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#bg)"/>
+
+  <!-- inner window -->
+  <g>
+    <!-- title bar with traffic lights -->
+    <rect x="232" y="300" width="560" height="424" rx="44" fill="#181825"/>
+    <rect x="232" y="300" width="560" height="96" rx="44" fill="#313244"/>
+    <rect x="232" y="352" width="560" height="44" fill="#313244"/>
+    <circle cx="286" cy="348" r="15" fill="#f38ba8"/>
+    <circle cx="336" cy="348" r="15" fill="#f9e2af"/>
+    <circle cx="386" cy="348" r="15" fill="#a6e3a1"/>
+
+    <!-- vertical split: left browser pane | right terminal pane -->
+    <line x1="512" y1="396" x2="512" y2="724" stroke="#45475a" stroke-width="6"/>
+
+    <!-- left: browser globe -->
+    <g stroke="url(#browser)" stroke-width="16" fill="none" stroke-linecap="round">
+      <circle cx="372" cy="560" r="86"/>
+      <ellipse cx="372" cy="560" rx="40" ry="86"/>
+      <line x1="286" y1="560" x2="458" y2="560"/>
+    </g>
+
+    <!-- right: terminal prompt >_ -->
+    <g stroke="#a6e3a1" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="576,516 626,560 576,604"/>
+      <line x1="640" y1="612" x2="712" y2="612"/>
+    </g>
+  </g>
+</svg>

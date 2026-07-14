@@ -1,9 +1,11 @@
 import { ipcRenderer } from "electron";
+import "./passwords"; // login capture / autofill / save banner (pw:* channels)
 
 /**
  * Injected into every browser WebContentsView (sandboxed, isolated world).
  * Detects two-finger trackpad overscroll swipes and mouse back/forward
- * buttons, then asks the main process to walk the page's history.
+ * buttons, then asks the main process to walk the page's history. Also pulls in
+ * the password manager (./passwords) so both share this single pane preload.
  *
  * Chrome-like arming model: accumulating horizontal overscroll only ARMS the
  * gesture and shows a progress arrow; navigation fires when the gesture ENDS

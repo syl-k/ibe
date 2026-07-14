@@ -13,7 +13,14 @@ files:
 asarUnpack:
   - "**/node_modules/node-pty/**"
 
+# icon.png reaches the running app (Contents/Resources/icon.png) for OS
+# notifications; the app icon itself comes from build/icon.icns automatically.
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+
 mac:
+  icon: build/icon.icns
   category: public.app-category.developer-tools
   target:
     - dmg

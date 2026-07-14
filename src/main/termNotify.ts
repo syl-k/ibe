@@ -1,6 +1,18 @@
 import { app, BrowserWindow, Notification, shell, type WebContents } from "electron";
 import { execFile } from "child_process";
+import { existsSync } from "fs";
+import { join } from "path";
 import { getSettings } from "./settings";
+
+/** Absolute path to the app icon used on notifications, or undefined.
+ *  Packaged: Resources/icon.png (extraResources). Dev: build/icon.png. */
+function notifyIcon(): string | undefined {
+  const candidates = [
+    join(process.resourcesPath, "icon.png"),
+    join(app.getAppPath(), "build", "icon.png"),
+  ];
+  return candidates.find((p) => existsSync(p));
+}
 
 /**
  * Terminal "attention" notifications, cmux-style: when a pty rings the bell —
@@ -142,7 +154,7 @@ export function notifyTerminalActivity(
     return;
   }
 
-  const n = new Notification({ title: "ibe — ターミナル", body });
+  const n = new Notification({ title: "ibe — ターミナル", body, icon: notifyIcon() });
   n.on("click", () => {
     if (win && !win.isDestroyed()) {
       if (win.isMinimized()) win.restore();
