@@ -1,0 +1,116 @@
+# M7 — ターミナル通知（cmux 風）
+
+> 目的: ターミナルで Claude などの AI/コマンドが処理を終えた・入力待ちになったとき、
+> そのセッションを見ていなければ OS 通知を出し、クリックでそのセッションへ移動する。
+> 最終更新: 2026-07-01
+
+---
+
+## 1. 何をするか
+
+- Claude Code をはじめ多くの CLI/シェルは、ターンが終わって入力を待つときに
+  **端末ベル（BEL, `\x07`）** を鳴らす。これを検出し、**そのセッションを今見ていなければ**
+  （別アプリ・別タブ・同ペインの別セッション）ネイティブ通知を表示する。
+- 通知をクリックすると、ウィンドウを前面に出し、**そのセッションのタブ／ペインへ移動**する。
+- 設定（⌘,）の「ターミナル通知」で ON/OFF（既定 ON）。
+
+## 2. 設計
+
+### 検出は main の pty 層で行う（renderer ではない）
+- 背景タブの端末は renderer の xterm ビューが unmount されるため、xterm の `onBell` では
+  取りこぼす。通知が最も欲しいのはまさに「別タブ／別アプリを見ているとき」なので、
+  **全出力が必ず通る `pty.ts` の `proc.onData`** で検出する（[src/main/pty.ts](../src/main/pty.ts)）。
+
+### OSC 認識付きベルスキャナ
+- 素朴に BEL を数えると誤検知する。タイトル更新（OSC 0/1/2）、cwd（OSC 7）、
+  プロンプトマーク（OSC 133）などの **OSC 文字列は BEL で終端する**ため、プロンプト再描画の
+  たびに通知が飛んでしまう。
+- そこで [src/main/termNotify.ts](../src/main/termNotify.ts) の `createBellDetector()` が
+  小さなステートマシンで OSC 系列（`ESC ]` … `BEL`/`ST`）を読み飛ばし、**独立した BEL のみ**を
+  「注目シグナル」として数える。系列がチャンク境界を跨いでも状態を保持する。
+- おまけに **OSC 9（デスクトップ通知）** の本文を拾い、あれば通知本文に使う
+  （`ESC ] 9 ; <text> BEL`）。`OSC 9;4`（進捗）は無視。
+
+### 通知ポリシー — 「今見ているセッションだけ」抑制
+- `getSettings().notifyOnBell` が false なら何もしない。
+- **ユーザーがそのセッションを実際に見ているときだけ抑制**する。具体的には
+  `BrowserWindow.isFocused()` が true **かつ** そのセッションが**可視集合**に含まれる場合のみ出さない。
+  - つまり、ウィンドウが非アクティブ → 出す。
+  - ウィンドウはアクティブでも、**別タブを見ている／同じペインの別セッションタブを見ている** →
+    そのセッションは可視集合に無いので **出す**（ブラウザ＋ターミナル併用の本アプリで重要）。
+- **可視集合**＝アクティブタブ内の各ターミナルペインが表示中のセッション
+  （`visibleTerminalSessions()`）。renderer が Zustand の変化を購読し、集合が変わるたびに
+  `term:visible` で main に送る（[src/renderer/src/App.tsx](../src/renderer/src/App.tsx)）。分割で
+  複数の端末が同時に見えているケースもそのまま集合に入る。
+- セッションごとに **4 秒デバウンス**（ベル連打で通知が溢れないように）。
+- クリック → `win.show()/focus()` ＋ renderer へ `notify:activate`（セッション id）。
+  renderer の `revealSession` が該当タブへ切替＋ペインをフォーカス＋そのセッションを表示。
+- 背景タブの端末も pty は動き続ける（[useTerminals](../src/renderer/src/hooks/useTerminals.ts) が
+  全タブ分の pty を生成・レイアウトから消えるまで維持）ので、別タブで走らせた Claude の完了も拾える。
+
+## 3. ブラウザペインの Web 通知（Google カレンダー等）
+
+ターミナルのベルとは別に、**ブラウザペインで開いた Web ページの通知**（Google カレンダーの
+イベントリマインダー等）も OS 通知として出せる。
+
+- Web ページは Web Notifications API（`Notification.requestPermission()` / `new Notification()`）で
+  通知を出す。Electron の `WebContentsView` はこれをネイティブ通知に橋渡しできるが、**通知許可**を
+  与えるハンドラが要る。
+- [src/main/permissions.ts](../src/main/permissions.ts) がビューの `session` に
+  `setPermissionRequestHandler` / `setPermissionCheckHandler` を設定し、**許可オリジンの
+  allow-list**（既定: `calendar.google.com` / `mail.google.com`）だけ `notifications` を許可する。
+  他オリジンの通知は拒否（勝手なサイトの通知スパムを防ぐ）。通知以外の権限は既定（許可）のまま。
+- 背景タブでも `WebContentsView` は生き続けるので、カレンダーを別タブにしてもリマインダーは届く。
+- 利用側の条件: Google にログイン済み・カレンダー設定で「デスクトップ通知」を ON・macOS で ibe に
+  通知権限を許可。許可サイトを増やすには `NOTIFY_ORIGINS` に追記する。
+- これは「タブを開いている間、そのページ自身が出す通知」を OS に橋渡しするもの。タブと無関係に
+  予定を通知するには Google Calendar API + OAuth 連携が必要（別途）。
+
+## 3.5 Claude Code で通知を受けるための設定(重要)
+
+Claude Code は**未知のターミナルでは既定で何も鳴らさない**(`preferredNotifChannel: "auto"` は
+iTerm2/Ghostty/Kitty 専用)。さらに**承認プロンプトの自動ベルは未実装**
+([anthropics/claude-code#36850](https://github.com/anthropics/claude-code/issues/36850))で、
+Notification フックが唯一の手段。`~/.claude/settings.json` に以下を設定する:
+
+```json
+{
+  "preferredNotifChannel": "terminal_bell",
+  "hooks": {
+    "Notification": [{
+      "matcher": "permission_prompt",
+      "hooks": [{ "type": "command", "command": "printf '\\a' > /dev/tty" }]
+    }]
+  }
+}
+```
+
+- `terminal_bell`: ターン完了時にベル → ibe が検出。
+- フック: 承認プロンプト表示時に BEL を **`/dev/tty` へ直接**書く(フックの stdout は
+  Claude Code に吸われるため `> /dev/tty` が必須)。
+- ibe 側は pty 環境の `TERM_PROGRAM` を `ibe` に正規化している(親ターミナルの
+  iTerm2/VSCode 等が漏れると Claude Code がそれ向けの通知方式を選んでしまうため)。
+
+### 開発ビルドでの通知表示
+署名なしの dev 実行体(`npm run dev`)は macOS の通知権限を得られず、ネイティブ通知が
+黙って破棄される。dev では `osascript -e 'display notification …'`(Apple 署名済み)に
+フォールバックして表示する(クリックでのセッション移動は不可)。パッケージ版はネイティブ
+通知(クリック移動あり)。音(afplay)は両方式共通。
+
+## 4. 既知の制約 / 見送り
+
+- ベル検出なので、ベルを鳴らさない AI/コマンドには反応しない（完了検出の汎用フックは持たない）。
+  タブ補完のビープなど「意図しないベル」でも（非アクティブ時に）鳴りうるが、設定で無効化できる。
+- 通知のアプリ名/アイコンは Electron 既定（署名・アイコン整備は今後）。
+
+## 5. 動作確認の要点
+
+1. ターミナルペインで `sleep 3; printf '\a'` → ウィンドウを別アプリに切替 → 3 秒後に通知。
+2. 通知をクリック → ibe が前面化し、そのセッションのタブ／ペインがアクティブになる。
+3. **同一ウィンドウ・別タブ**: タブ A の端末で上記を実行 → すぐタブ B に切替（ウィンドウはアクティブ
+   のまま）→ 3 秒後に通知。クリックでタブ A に戻る。
+4. **見ている端末は鳴らない**: 単一ターミナルを表示したまま `sleep 3; printf '\a'` → 通知は出ない。
+5. 設定（⌘,）で「ターミナル通知」を OFF → 鳴らなくなる。再起動後も設定は復元。
+6. プロンプトを何度も再描画（`ls` 連打等）しても通知は飛ばない（OSC タイトル終端 BEL を無視）。
+7. **Web 通知**: ブラウザペインで Google カレンダーを開き（ログイン・デスクトップ通知 ON）、
+   直近の予定でリマインダーが OS 通知として出ることを確認。allow-list 外のサイトでは出ない。

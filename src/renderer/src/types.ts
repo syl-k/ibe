@@ -1,0 +1,38 @@
+export type Kind = "browser" | "terminal" | "editor";
+
+export interface LeafNode {
+  type: "leaf";
+  id: string;
+  kind: Kind;
+  /** last-known url (browser panes only) */
+  url: string;
+  /** per-pane zoom factor (browser panes only; 1 = 100%, omitted = 100%) */
+  zoom?: number;
+  /** pty session ids in this pane (terminal panes only; ≥1) */
+  sessions?: string[];
+  /** which session is shown (terminal panes only) */
+  activeSessionId?: string;
+  /** opened folder, absolute path (editor panes only) */
+  folder?: string;
+  /** open file tabs, absolute paths in open order (editor panes only) */
+  files?: string[];
+  /** which file is shown (editor panes only) */
+  activeFile?: string;
+}
+
+export interface SplitNode {
+  type: "split";
+  id: string;
+  dir: "row" | "col";
+  /** fraction of space given to the first child (0..1) */
+  ratio: number;
+  children: [LayoutNode, LayoutNode];
+}
+
+export type LayoutNode = LeafNode | SplitNode;
+
+export interface Tab {
+  id: string;
+  title: string;
+  root: LayoutNode;
+}
